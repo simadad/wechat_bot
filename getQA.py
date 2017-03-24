@@ -2,6 +2,11 @@ from functools import wraps
 import pymysql
 import datetime
 db = pymysql.connect('localhost', 'root', 'xgh19920520', 'codeclass', charset="utf8")
+db_table_column = {
+    'qa_question': ('question', 'create_time', 'checked'),
+    'qa_answer': ('answer', 'modify_time'),
+    'qa_answer_questions': ('answer_id', 'question_id')
+}
 
 
 def keep_contact(func):
@@ -16,18 +21,36 @@ def keep_contact(func):
     return wrapped_func
 
 
+def data_save(table_name, value):
+    cur = db.cursor()
+    cur.execute('''
+    INSERT INTO {} ({}) VALUES ('{}', '{}', {})
+    '''.format(
+        table_name,
+        ','.join(db_table_column[table_name]),
+        value,
+        datetime.datetime.now(),
+        False
+    ))
+    cur.execute('SELECT LAST_INSERT_ID()')
+    new_id = cur.fetchone()[0]
+    db.commit()
+    return new_id
+
+
 @keep_contact
 def save_question(msg):
     """
     接受传入的问题，存入数据库
     """
-    cur = db.cursor()
-    cur.execute('''
-    INSERT INTO qa_question (question, create_time, checked) \
-    VALUES ('{}', '{}', False)
-    '''.format(
-        msg, datetime.datetime.now().strftime('%Y-%m-%d')
-    ))
-    db.commit()
+    question_id = data_save('qa_question', msg)
+    return question_id
 
-'asdas{}'.format(datetime.datetime.now().strftime('%Y-%m-%d'))
+
+@keep_contact
+def save_answer(msg):
+    """
+    接收传入的答案，存入数据库
+    """
+    answer_id = data_save('qa_answer', msg)
+    return answer_id
