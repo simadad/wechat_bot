@@ -9,7 +9,8 @@ def text_msg_reply(info):
      获取返回信息，回复消息
     """
     reply_msg = info_router(info)
-    return reply_msg
+    if reply_msg:
+        return reply_msg
 
 
 if __name__ == '__main__':

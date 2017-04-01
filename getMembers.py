@@ -25,4 +25,3 @@ def save_members(names, file=None):
         ws.cell(row=row, column=3).value = name[2]
         row += 1
     wb.save('members.xlsx')
-

@@ -2,10 +2,12 @@ from functools import wraps
 import pymysql
 import datetime
 db = pymysql.connect('localhost', 'root', 'xgh19920520', 'codeclass', charset="utf8")
+# TODO 数据库结构修改
 db_table_column = {
-    'qa_question': ('question', 'create_time', 'checked'),
-    'qa_answer': ('answer', 'modify_time'),
-    'qa_answer_questions': ('answer_id', 'question_id')
+    'qa_question': 'create_time, checked',
+    'qa_answer': 'answer, modify_time',
+    'qa_description': 'description, question_id',
+    'qa_answer_questions': 'answer_id, question_id'
 }
 
 
@@ -14,23 +16,24 @@ def keep_contact(func):
     装饰器，使数据库保持连接
     """
     @wraps(func)
-    def wrapped_func(msg, *args, **kwargs):
+    def wrapped_func(*args, **kwargs):
         if not db.open:
             db.ping()
-        func(msg)
+        func(*args, **kwargs)
     return wrapped_func
 
 
-def data_save(table_name, value):
+def data_save(table_name, values):
+    """
+    数据库接口
+     table_name：表名
+     value：
+    """
     cur = db.cursor()
-    cur.execute('''
-    INSERT INTO {} ({}) VALUES ('{}', '{}', {})
-    '''.format(
+    cur.execute('INSERT INTO {} ({}) VALUES ({})'.format(
         table_name,
-        ','.join(db_table_column[table_name]),
-        value,
-        datetime.datetime.now(),
-        False
+        db_table_column[table_name],
+        values
     ))
     cur.execute('SELECT LAST_INSERT_ID()')
     new_id = cur.fetchone()[0]
@@ -39,18 +42,33 @@ def data_save(table_name, value):
 
 
 @keep_contact
-def save_question(msg):
+def save_question():
     """
     接受传入的问题，存入数据库
     """
-    question_id = data_save('qa_question', msg)
+    values = '"{}", False'.format(datetime.datetime.now())
+    print('save_question', values)
+    question_id = data_save('qa_question', values)
     return question_id
 
 
 @keep_contact
-def save_answer(msg):
+def save_answer(msg, qid):
     """
     接收传入的答案，存入数据库
     """
-    answer_id = data_save('qa_answer', msg)
-    return answer_id
+    values = '{}, "{}"'.format(msg, datetime.datetime.now())
+    answer_id = data_save('qa_answer', values)
+    ids = '{}, {}'.format(answer_id, qid)
+    data_save('qa_answer_questions', ids)
+    # return answer_id
+
+
+@keep_contact
+def save_desc(msg, qid):
+    """
+    存储新问题，返回 id
+    """
+    values = '{}, {}'.format(msg, qid)
+    desc_id = data_save('qa_description', values)
+    # return desc_id
