@@ -1,5 +1,5 @@
 #!/usr/local/bin/python3.5
-from MyWechatBot import getQA
+import getQA
 import datetime
 import re
 QuestionHint = r'#Q#'                   # 提问
