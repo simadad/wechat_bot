@@ -1,3 +1,4 @@
+#!/usr/local/bin/python3.5
 import itchat
 import openpyxl
 title = ['群昵称', '昵称', '进度', 'UserName']

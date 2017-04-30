@@ -1,3 +1,4 @@
+#!/usr/local/bin/python3.5
 import openpyxl
 import getMembers
 from mybot import send_text

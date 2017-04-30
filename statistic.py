@@ -1,3 +1,4 @@
+#!/usr/local/bin/python3.5
 from matplotlib import pyplot as plt
 import openpyxl
 import pymysql

@@ -1,3 +1,4 @@
+#!/usr/local/bin/python3.5
 from processor import info_router
 import itchat
 
