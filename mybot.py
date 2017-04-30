@@ -13,6 +13,13 @@ def text_msg_reply(info):
         return reply_msg
 
 
-if __name__ == '__main__':
-    itchat.auto_login()
-    itchat.run()
+def send_img(img, username):
+    itchat.send('@img@%s' % img, username)
+
+
+def send_text(msg, username):
+    itchat.send(msg, username)
+
+
+itchat.auto_login()
+itchat.run()
