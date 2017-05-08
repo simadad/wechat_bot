@@ -23,4 +23,5 @@ def send_text(msg, username):
 
 
 itchat.auto_login()
-itchat.run()
+if __name__ == '__main__':
+    itchat.run()
