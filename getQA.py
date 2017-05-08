@@ -2,7 +2,7 @@
 from functools import wraps
 import pymysql
 import datetime
-db = pymysql.connect('localhost', 'root', 'xgh19920520', 'codeclass', charset="utf8")
+db = pymysql.connect('localhost', 'root', 'markdev2017', 'codeclass', charset="utf8")
 # TODO 数据库结构修改
 db_table_column = {
     'qa_question': 'create_time, checked',
