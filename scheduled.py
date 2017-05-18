@@ -6,7 +6,7 @@ from mybot import send_text
 
 def get_now_info(name):
     """
-    传入群识别关键字，返回UserName，当前进度, 统计表
+    传入群识别关键字，返回群UserName，当前进度, 统计表
     """
     file_name = name + '.xlsx'
     try:
@@ -66,4 +66,4 @@ def run(unique_name, file='scheduled.xlsx'):
 
 if __name__ == '__main__':
     file_scheduled = 'scheduled.xlsx'
-    run('2017-2', file_scheduled)
+    run('2017-04-24', file_scheduled)
