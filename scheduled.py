@@ -18,12 +18,13 @@ def get_now_info(name):
     username = ws.cell(row=2, column=4).value
     schedule_info = ws.cell(row=2, column=3).value
     now_schedule_row = schedule_info.split(';')[0]
+    print('now_schedule_row: ', now_schedule_row)
     return username, int(now_schedule_row), wb
 
 
 def get_new_schedule(now_schedule_row, file):
     """
-    查找新进度
+    接收当前进度的行数，返回新进度、进度描述
     """
     wb = openpyxl.load_workbook(file)
     ws = wb.active
@@ -37,7 +38,7 @@ def save_new_schedule(unique_name, now_schedule_row, new_schedule, wb_member):
     更新，保存群进度信息
     """
     file_name = unique_name + '.xlsx'
-    new_info = str(now_schedule_row+1) + new_schedule
+    new_info = str(now_schedule_row+1) + ';' + new_schedule
     ws = wb_member.active
     ws.cell(row=2, column=3).value = new_info
     print(wb_member, file_name, new_info, 22222)
@@ -63,6 +64,7 @@ def run(unique_name, file='scheduled.xlsx'):
     msg = package_msg(new_schedule, pre_info)
     if msg:
         send_text(msg, username)
+    return msg
 
 if __name__ == '__main__':
     file_scheduled = 'scheduled.xlsx'
