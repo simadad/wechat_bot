@@ -1,4 +1,3 @@
-# coding:utf8
 #!/usr/local/bin/python3.5
 import matplotlib
 matplotlib.use('Agg')

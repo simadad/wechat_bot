@@ -9,11 +9,11 @@ def get_now_info(name):
     传入群识别关键字，返回群UserName，当前进度, 统计表
     """
     file_name = name + '.xlsx'
-    try:
-        wb = openpyxl.load_workbook(file_name)
-    except FileNotFoundError:
-        getMembers.run(name)
-        wb = openpyxl.load_workbook(file_name)
+    #try:
+    #    wb = openpyxl.load_workbook(file_name)
+    #except FileNotFoundError:
+    getMembers.run(name)
+    wb = openpyxl.load_workbook(file_name)
     ws = wb.active
     username = ws.cell(row=2, column=4).value
     schedule_info = ws.cell(row=2, column=3).value
@@ -37,7 +37,7 @@ def save_new_schedule(unique_name, now_schedule_row, new_schedule, wb_member):
     更新，保存群进度信息
     """
     file_name = unique_name + '.xlsx'
-    new_info = str(now_schedule_row+1) + new_schedule
+    new_info = str(now_schedule_row+1) + ';' + new_schedule
     ws = wb_member.active
     ws.cell(row=2, column=3).value = new_info
     print(wb_member, file_name, new_info, 22222)
