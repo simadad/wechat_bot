@@ -19,7 +19,6 @@ def send_text(msg, username):
     itchat.send(msg, username)
 
 
-itchat.auto_login()
+itchat.auto_login(enableCmdQR=2, hotReload=True)
 if __name__ == '__main__':
     itchat.run()
-    itchat.auto_login(enableCmdQR=2, hotReload=True)

@@ -1,4 +1,7 @@
 #!/usr/local/bin/python3.5
+import matplotlib
+matplotlib.use('Agg')
+
 from matplotlib import pyplot as plt
 import openpyxl
 import pymysql
@@ -8,7 +11,7 @@ cur = db.cursor()
 
 mpl.rcParams['font.sans-serif'] = ['FangSong']      # 指定默认字体
 mpl.rcParams['axes.unicode_minus'] = False           # 解决保存图像是负号'-'显示为方块的问题
-zjs = 3                                                 # 助教人数，确保助教先进群！
+zjs = 3                                                 # 助教人数，确保助教先入群！
 
 
 def get_times(lst: list, step: int):
@@ -30,11 +33,13 @@ def get_times(lst: list, step: int):
 
 def get_members(file):
     """
-    从成员信息文件获取并返回全体成员用户名生成器
+    从成员信息文件获取并返回群进度，以及全体成员用户名生成器
     """
     wb = openpyxl.load_workbook(file)
     ws = wb.active
-    # 从统计表格中第一位学员开始，3 = 2（题头）+ 1（从1开始计数）
+    # 返回进度信息
+    yield ws.cell(row=2, column=3).value
+    # 从统计表格中第一位学员开始，3 = 2（题头）+ 1（从1开始计数）,zjs # 助教数
     for row in ws[3+zjs:ws.max_row]:
         if row[0].value is None:
             yield row[1].value
@@ -62,7 +67,7 @@ def _get_data(username):
     return cur.fetchone()
 
 
-def get_process(file):
+def get_process(member_pre):
     """
      获取全体学员进度信息，已知学员、未知学员
     """
@@ -71,7 +76,7 @@ def get_process(file):
     total = []
     members = []
     missing = []
-    for m in get_members(file):
+    for m in member_pre:
         data = _get_data(m)
         if data:
             # if data[0] in process:
@@ -90,7 +95,7 @@ def plot_process(ax, process, limit):
     """
     课程进度图
     """
-    limit += 0.5
+    limit -= 0.5
     # x = list(process)
     # x.sort()
     # y = [process[a] for a in x]
@@ -165,19 +170,34 @@ def plot_members(members, missing):
     plt.pie(x, explode, labels, autopct=autopct, startangle=startangle)
 
 
-def run(process_limit, total_limit, filename='members.xlsx', img='statistic.png'):
-    process, total, members, missing = get_process(filename)
+def get_limit(member_pre):
+    """
+    计算并返回进度限制
+    """
+    limit_pp = next(member_pre)
+    limit_pre = limit_pp.split(';')[-1]
+    limit_pro = int(limit_pre.split('-')[0])
+    limit_tot = limit_pro*9
+    return limit_pro, limit_tot
+
+
+def run(filename='members.xlsx', img='statistic.png'):
+    members_pre = get_members(filename)
+    limit_pro, limit_tot = get_limit(members_pre)
+    process, total, members, missing = get_process(members_pre)
     fig, (ax1, ax2) = plt.subplots(2, 1, sharex='col')
     # plt.subplot(221)
-    plot_process(ax1, process, process_limit)
+    plot_process(ax1, process, limit_pro)
     # plt.subplot(222)
-    plot_total(ax2, total, total_limit)
+    plot_total(ax2, total, limit_tot)
     # plt.subplot(223)
     # plot_members(members, missing)
+    # img_path = '/home/xieguanghui/Envs/MyWechatBot/' + img
+    # plt.savefig(img_path)
     plt.savefig(img)
-    plt.show()
+    # plt.show()
 
 
 if __name__ == '__main__':
     # members_file = input('请输入群成员文件名：')
-    run(7, 40, filename='20170424.xlsx')
+    run(filename='20170424.xlsx')
