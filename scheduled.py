@@ -9,11 +9,11 @@ def get_now_info(name):
     传入群识别关键字，返回群UserName，当前进度, 统计表
     """
     file_name = name + '.xlsx'
-    try:
-        wb = openpyxl.load_workbook(file_name)
-    except FileNotFoundError:
-        getMembers.run(name)
-        wb = openpyxl.load_workbook(file_name)
+    #try:
+    #    wb = openpyxl.load_workbook(file_name)
+    #except FileNotFoundError:
+    getMembers.run(name)
+    wb = openpyxl.load_workbook(file_name)
     ws = wb.active
     username = ws.cell(row=2, column=4).value
     schedule_info = ws.cell(row=2, column=3).value

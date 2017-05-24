@@ -1,4 +1,7 @@
 #!/usr/local/bin/python3.5
+import matplotlib
+matplotlib.use('Agg')
+
 from matplotlib import pyplot as plt
 import openpyxl
 import pymysql
@@ -9,7 +12,6 @@ cur = db.cursor()
 mpl.rcParams['font.sans-serif'] = ['FangSong']      # 指定默认字体
 mpl.rcParams['axes.unicode_minus'] = False           # 解决保存图像是负号'-'显示为方块的问题
 zjs = 3                                                 # 助教人数，确保助教先入群！
-
 
 def get_times(lst: list, step: int):
     """
@@ -189,8 +191,10 @@ def run(filename='members.xlsx', img='statistic.png'):
     plot_total(ax2, total, limit_tot)
     # plt.subplot(223)
     # plot_members(members, missing)
+    # img_path = '/home/xieguanghui/Envs/MyWechatBot/' + img
+    #plt.savefig(img_path)
     plt.savefig(img)
-    plt.show()
+    # plt.show()
 
 
 if __name__ == '__main__':
