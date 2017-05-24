@@ -49,4 +49,4 @@ def run(unique_name):
     save_members(members, unique_name)
 
 if __name__ == '__main__':
-    run('成长群')
+    run('20170424')

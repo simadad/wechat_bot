@@ -1,4 +1,7 @@
 #!/usr/local/bin/python3.5
+import matplotlib
+matplotlib.use('Agg')
+
 from matplotlib import pyplot as plt
 import openpyxl
 import pymysql
@@ -8,24 +11,46 @@ cur = db.cursor()
 
 mpl.rcParams['font.sans-serif'] = ['FangSong']      # 指定默认字体
 mpl.rcParams['axes.unicode_minus'] = False           # 解决保存图像是负号'-'显示为方块的问题
+zjs = 3                                                 # 助教人数，确保助教先入群！
 
 
-def get_members(file='members.xlsx'):
+def get_times(lst: list, step: int):
     """
-    从成员信息文件获取并返回全体成员用户名生成器
+    对传入的列表 lst 按间隔 step 统计次数，返回字典
+    :param lst:
+    :param step:
+    :return:
+    """
+    result = {}
+    for i in lst:
+        k = i//step
+        if k in result:
+            result[k] += 1
+        else:
+            result[k] = 1
+    return result
+
+
+def get_members(file):
+    """
+    从成员信息文件获取并返回群进度，以及全体成员用户名生成器
     """
     wb = openpyxl.load_workbook(file)
     ws = wb.active
-    for row in ws:
-        if row[0]:
-            yield row[0].value
-        else:
+    # 返回进度信息
+    yield ws.cell(row=2, column=3).value
+    # 从统计表格中第一位学员开始，3 = 2（题头）+ 1（从1开始计数）,zjs # 助教数
+    for row in ws[3+zjs:ws.max_row]:
+        if row[0].value is None:
             yield row[1].value
+        else:
+            yield row[0].value
 
 
 def _get_data(username):
     """
     从数据库获取并返回当前学员进度信息
+    课程章节、课程总数、用户名
     """
     cur.execute('''
      SELECT MAX(chapter.seq), COUNT(lesson.seq), user.username
@@ -42,17 +67,22 @@ def _get_data(username):
     return cur.fetchone()
 
 
-def get_process(file='members.xlsx'):
+def get_process(member_pre):
     """
      获取全体学员进度信息，已知学员、未知学员
     """
+    # process = {}
     process = []
     total = []
     members = []
     missing = []
-    for m in get_members(file):
+    for m in member_pre:
         data = _get_data(m)
         if data:
+            # if data[0] in process:
+            #     process[data[0]] += 1
+            # else:
+            #     process[data[0]] = 1
             process.append(data[0])
             total.append(data[1])
             members.append(m)
@@ -61,24 +91,70 @@ def get_process(file='members.xlsx'):
     return process, total, members, missing
 
 
-def plot_process(process, limit):
+def plot_process(ax, process, limit):
     """
-    课程进度散点图
+    课程进度图
     """
-    plt.title('课程进度统计')
-    process.sort()
-    plt.plot(process, 'bo')
-    plt.axhline(limit, color='r')
+    limit -= 0.5
+    # x = list(process)
+    # x.sort()
+    # y = [process[a] for a in x]
+    # ymax = max(y)
+    # ylab = ['第%d章' % a for a in range(13)]
+    # ylab.insert(0, ' ')
+
+    process_count = get_times(process, 1)
+    x = list(process_count.keys())
+    y = list(process_count.values())
+    # [print(i) for i in zip(x, y)]
+    ymax = max(y)
+    ylab = ['第%d章' % a for a in range(13)]
+
+    # fig, ax = plt.subplots()
+
+    ax.barh(x, y, color='blue')
+    ax.set_title('课程进度统计（图一）', size=18)
+    ax.spines['top'].set_color('none')
+    ax.spines['right'].set_color('none')
+    ax.spines['bottom'].set_color('none')
+    ax.set_yticks(range(len(ylab)))
+    ax.set_yticklabels(ylab)
+    ax.set_xticks(range(ymax + 1))
+    # ax.set_xlabel('人数', size=15)
+    ax.set_ylabel('章节', size=15)
+    ax.annotate('最低限度', (3, limit), (3, limit + 2), arrowprops=dict(facecolor='red'), size=14)
+    ax.axhline(limit, color='r')
+
+    # plt.title('课程进度统计')
+    # x = list(process)
+    # y = [process[i] for i in x]
+    # plt.barh(x, y)
+    # plt.axhline(limit, color='r')
+    # plt.yticks(['a', 'b', 'c', 'd'])
 
 
-def plot_total(total, limit):
+def plot_total(ax, total, limit):
     """
-    课程总数散点图
+    课程总数图
     """
-    plt.title('课程总数统计')
-    total.sort()
-    plt.plot(total, 'gs')
-    plt.axhline(limit, color='r')
+    limit = limit//10 + 0.5
+    total_count = get_times(total, 10)
+    x = list(total_count.keys())
+    y = list(total_count.values())
+    ymax = max(y)
+    ylab = ['%d课' % a for a in range(0, 100, 10)]
+
+    ax.barh(x, y, color='green')
+    ax.set_title('课程总数统计（图二）', size=18)
+    ax.spines['top'].set_color('none')
+    ax.spines['right'].set_color('none')
+    ax.set_yticks(range(len(ylab)))
+    ax.set_yticklabels(ylab)
+    ax.set_xticks(range(ymax + 1))
+    ax.set_ylabel('课程数', size=15)
+    ax.set_xlabel('人数', size=15)
+    ax.axhline(limit, color='r')
+    ax.annotate('最低限度', (3, limit), (3, limit+2), arrowprops=dict(facecolor='red'), size=14)
 
 
 def plot_members(members, missing):
@@ -94,18 +170,34 @@ def plot_members(members, missing):
     plt.pie(x, explode, labels, autopct=autopct, startangle=startangle)
 
 
-def run(process_limit, total_limit, filename='members.xlsx', img='statistic.png'):
-    process, total, members, missing = get_process(filename)
-    plt.subplot(221)
-    plot_process(process, process_limit)
-    plt.subplot(222)
-    plot_total(total, total_limit)
-    plt.subplot(223)
-    plot_members(members, missing)
+def get_limit(member_pre):
+    """
+    计算并返回进度限制
+    """
+    limit_pp = next(member_pre)
+    limit_pre = limit_pp.split(';')[-1]
+    limit_pro = int(limit_pre.split('-')[0])
+    limit_tot = limit_pro*9
+    return limit_pro, limit_tot
+
+
+def run(filename='members.xlsx', img='statistic.png'):
+    members_pre = get_members(filename)
+    limit_pro, limit_tot = get_limit(members_pre)
+    process, total, members, missing = get_process(members_pre)
+    fig, (ax1, ax2) = plt.subplots(2, 1, sharex='col')
+    # plt.subplot(221)
+    plot_process(ax1, process, limit_pro)
+    # plt.subplot(222)
+    plot_total(ax2, total, limit_tot)
+    # plt.subplot(223)
+    # plot_members(members, missing)
+    # img_path = '/home/xieguanghui/Envs/MyWechatBot/' + img
+    # plt.savefig(img_path)
     plt.savefig(img)
-    plt.show()
+    # plt.show()
 
 
 if __name__ == '__main__':
     # members_file = input('请输入群成员文件名：')
-    run(7, 40)
+    run(filename='20170424.xlsx')
