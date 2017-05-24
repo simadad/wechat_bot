@@ -9,9 +9,9 @@ def get_now_info(name):
     传入群识别关键字，返回群UserName，当前进度, 统计表
     """
     file_name = name + '.xlsx'
-    #try:
+    # try:
     #    wb = openpyxl.load_workbook(file_name)
-    #except FileNotFoundError:
+    # except FileNotFoundError:
     getMembers.run(name)
     wb = openpyxl.load_workbook(file_name)
     ws = wb.active
@@ -68,4 +68,4 @@ def run(unique_name, file='scheduled.xlsx'):
 
 if __name__ == '__main__':
     file_scheduled = 'scheduled.xlsx'
-    run('2017-04-24', file_scheduled)
+    run('20170424', file_scheduled)
