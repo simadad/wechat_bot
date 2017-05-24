@@ -13,6 +13,7 @@ mpl.rcParams['font.sans-serif'] = ['FangSong']      # 指定默认字体
 mpl.rcParams['axes.unicode_minus'] = False           # 解决保存图像是负号'-'显示为方块的问题
 zjs = 3                                                 # 助教人数，确保助教先入群！
 
+
 def get_times(lst: list, step: int):
     """
     对传入的列表 lst 按间隔 step 统计次数，返回字典
@@ -192,7 +193,7 @@ def run(filename='members.xlsx', img='statistic.png'):
     # plt.subplot(223)
     # plot_members(members, missing)
     # img_path = '/home/xieguanghui/Envs/MyWechatBot/' + img
-    #plt.savefig(img_path)
+    # plt.savefig(img_path)
     plt.savefig(img)
     # plt.show()
 
