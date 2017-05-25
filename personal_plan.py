@@ -14,7 +14,16 @@ def search_students_info():
     """
     cur = info_db.cursor()
     cur.execute('''
-        #TODO
+    SELECT MAX(chapter.seq), COUNT(lesson.seq), user.username
+    FROM school_learnedlesson learned
+    LEFT JOIN school_lesson lesson
+    ON lesson.id = learned.lesson_id
+    LEFT JOIN auth_user user
+    ON user.id = learned.user_id
+    LEFT JOIN school_chapter chapter
+    ON chapter.id = lesson.chapter_id
+    WHERE user.username = '{username}'
+    GROUP BY user.username
     ''')
     for row in cur:
         yield row
