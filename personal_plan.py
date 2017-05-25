@@ -1,8 +1,10 @@
 #!/usr/local/bin/python3.5
+import itchat
 from statistic import db as info_db
-from getQA import db as chat_db
+from getQA import db as wechat_db
 from getQA import db_table_column, data_save
-db_table_column['user_wechat'] = 'username, wechat'
+db_table_column['user_wechat'] = 'username, wechat, new_wechat'
+itchat.auto_login(hotReload=True)
 
 
 def search_students():
@@ -14,15 +16,16 @@ def search_students():
     cur.execute('''
         #TODO
     ''')
-    yield cur.fetchall()
+    for row in cur:
+        yield row
 
 
-def search_wechat(username):
+def search_wechat(username, wechat):
     """
     接受username，返回微信最新UserName
     :return:
     """
-    cur = chat_db.cursor()
+    cur = wechat_db.cursor()
     cur.execute('''
         SELECT wechat FROM user_wechat WHERE username='{username}'
         ;'''.format(username=username))
