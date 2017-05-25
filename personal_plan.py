@@ -7,7 +7,7 @@ db_table_column['user_wechat'] = 'username, wechat, new_wechat'
 itchat.auto_login(hotReload=True)
 
 
-def search_students():
+def search_students_info():
     """
     搜索并返回符合条件的学生用户名，生成器形式
     :return:
@@ -20,34 +20,50 @@ def search_students():
         yield row
 
 
-def search_wechat(username, wechat):
+def search_wechat_id(stu_info):
     """
     接受username，返回微信最新UserName
     :return:
     """
-    cur = wechat_db.cursor()
-    cur.execute('''
-        SELECT wechat FROM user_wechat WHERE username='{username}'
-        ;'''.format(username=username))
-    wechat = cur.fetchone()
-    wechat_username = _get_new_wechat(username, wechat)
-    return wechat
+    username, wechat = stu_info
+    we_user = itchat.search_friends(wechat) or itchat.search_friends(username)
+    if len(we_user) == 1:
+        wechat_id = we_user['UserName']
+    else:
+        new_wechat = _confirm(stu_info)
+        if new_wechat:
+            we_user = itchat.search_friends(new_wechat)
+            wechat_id = we_user['UserName']
+        else:
+             wechat_id = False
+    return wechat_id
 
 
-def _get_new_wechat(username, wechat):
+def _confirm(stu_info):
     """
-    搜索并储存微信
+    本地数据库确认可用微信号
     :return:
     """
+    username, wechat = stu_info
+    cur = wechat_db.cursor()
+    cur.execute('''
+            SELECT username, new_wechat FROM user_wechat WHERE username='{username}'
+            ;'''.format(username=username))
+    _, new_wechat = cur.fetchone()
+    if new_wechat is None:
+        values = "'{}', '{}', null".format(*stu_info)
+        data_save('user_wechat', values)
+        new_wechat = False
+    return new_wechat
 
-    return
 
-
-def comb_info():
+def comb_info(wechat_id, info):
     """
     组合信息，返回消息模版
     :return:
     """
+    username, _, start_time, end_time, course_id, rate = info
+
 
 
 def send_msg():
@@ -59,9 +75,12 @@ def send_msg():
 
 def run():
     """
-    search_students -> search_wechat -> comb_info -> send_msg
+    search_students_info -> search_wechat -> comb_info -> send_msg
     :return:
     """
+    students_info = search_students_info()
+    for stu_info in students_info:
+        wechat_id = search_wechat_id(stu_info[:2])
 
 if __name__ == '__main__':
     run()
