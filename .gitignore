@@ -3,6 +3,7 @@
 *.ipynb
 test*
 ttt*
+*.pkl
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
