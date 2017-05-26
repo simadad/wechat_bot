@@ -6,16 +6,18 @@ from getQA import db_table_column, data_save
 import datetime
 db_table_column['user_wechat'] = 'username, wechat, new_wechat'
 itchat.auto_login(hotReload=True)
+courses = (1, 2)
 
 
-def search_students_info():
+def search_students_info(course_id):
     """
-    搜索并返回符合条件的学生用户名，生成器形式
+    搜索并返回符合条件的信息生成器
+    网站用户名-微信号-推送频率-计划起始日-计划到期日-总课时
     :return:
     """
     cur = info_db.cursor()
     cur.execute('''
-    SELECT user.username, bill.wechat, vip.remind_days, plan.start_date, plan.end_date, SUM(lesson.hour)
+    SELECT user.username, bill.wechat, vip.remind_days, plan.start_date, plan.end_date, plan.course_id, SUM(lesson.hour)
     FROM school_learnedlesson learned
     LEFT JOIN school_lesson lesson
     ON lesson.id = learned.lesson_id
@@ -29,8 +31,9 @@ def search_students_info():
     ON user.id = bill.vip_user_id
     WHERE vip.remind_plan = true
     OR vip.remind = true
+    AND plan.course_id = '{course_id}'
     GROUP BY user.username
-    ''')
+    '''.format(course_id=course_id))
     for row in cur:
         yield row
 
@@ -85,11 +88,19 @@ def comb_info(wechat_id, whole_hours, info):
     return msg
 
 
-def _get_whole_hours():
+def _get_whole_hours(course_id):
     """
     获取总课时
     """
-    hours = 0
+    cur = info_db.cursor()
+    cur.execute('''
+        SELECT SUM(lesson.hour)
+        FROM school_lesson lesson
+        LEFT JOIN school_chapter chapter
+        ON lesson.chapter_id = chapter.id
+        WHERE chapter.course_id = '{course_id}'
+    '''.format(course_id=course_id))
+    hours = cur.fetchone()
     return hours
 
 
@@ -130,13 +141,14 @@ def run():
     """
     search_students_info -> search_wechat -> comb_info -> send_msg
     """
-    whole_hours = _get_whole_hours()
-    students_info = search_students_info()
-    for stu_info in students_info:
-        wechat_id = search_wechat_id(stu_info[:2])
-        if wechat_id:
-            msg = comb_info(wechat_id, whole_hours, stu_info)
-            send_msg(wechat_id, msg)
+    for course_id in courses:
+        whole_hours = _get_whole_hours(course_id)
+        students_info = search_students_info(course_id)
+        for stu_info in students_info:
+            wechat_id = search_wechat_id(stu_info[:2])
+            if wechat_id:
+                msg = comb_info(wechat_id, whole_hours, stu_info)
+                send_msg(wechat_id, msg)
 
 if __name__ == '__main__':
     run()
