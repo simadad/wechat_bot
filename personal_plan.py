@@ -3,6 +3,7 @@ import itchat
 from statistic import db as info_db
 from getQA import db as wechat_db
 from getQA import db_table_column, data_save
+import datetime
 db_table_column['user_wechat'] = 'username, wechat, new_wechat'
 itchat.auto_login(hotReload=True)
 
@@ -39,12 +40,12 @@ def search_wechat_id(stu_info):
     if len(we_user) == 1:
         wechat_id = we_user['UserName']
     else:
-        new_wechat = _confirm(stu_info)
-        if new_wechat:
-            we_user = itchat.search_friends(new_wechat)
-            wechat_id = we_user['UserName']
-        else:
-             wechat_id = False
+        wechat_id = _confirm(stu_info)
+        # if new_wechat:
+        #     we_user = itchat.search_friends(new_wechat)
+        #     wechat_id = we_user['UserName']
+        # else:
+        #      wechat_id = False
     return wechat_id
 
 
@@ -53,43 +54,84 @@ def _confirm(stu_info):
     本地数据库确认可用微信号
     :return:
     """
-    username, wechat = stu_info
-    cur = wechat_db.cursor()
-    cur.execute('''
-            SELECT username, new_wechat FROM user_wechat WHERE username='{username}'
-            ;'''.format(username=username))
-    _, new_wechat = cur.fetchone()
-    if new_wechat is None:
-        values = "'{}', '{}', null".format(*stu_info)
-        data_save('user_wechat', values)
-        new_wechat = False
-    return new_wechat
+    # username, wechat = stu_info
+    # cur = wechat_db.cursor()
+    # cur.execute('''
+    #         SELECT username, new_wechat FROM user_wechat WHERE username='{username}'
+    #         ;'''.format(username=username))
+    # _, new_wechat = cur.fetchone()
+    # if new_wechat is None:
+    #     values = "'{}', '{}', null".format(*stu_info)
+    #     data_save('user_wechat', values)
+    #     new_wechat = False
+    # return new_wechat
+    return False
 
 
-def comb_info(wechat_id, info):
+def comb_info(wechat_id, whole_hours, info):
     """
     组合信息，返回消息模版
     :return:
     """
-    username, _, start_time, end_time, course_id, rate = info
+    username, _, start_time, end_time, course_id, rate, learned_hours, present_lesson = info
+    aim_lesson = _get_aim_lesson(whole_hours, learned_hours, end_time, present_lesson)
+    model = _model_choice(whole_hours, start_time, end_time)
+    msg = _get_msg(username, aim_lesson, model)
+    return msg
 
 
+def _get_whole_hours():
+    """
+    获取总课时
+    """
+    hours = 0
+    return hours
 
-def send_msg():
+
+def _get_aim_lesson(whole_hours, learned_hours, end_time, present_lesson):
+    """
+    计算目标课程
+    """
+    now = datetime.datetime.now()
+    aim_lesson = ''
+    return aim_lesson
+
+
+def _model_choice(whole_hours, start_time, end_time):
+    """
+    选择消息模版
+    """
+    model = ''
+    return model
+
+
+def _get_msg(username, aim_lesson, model):
+    """
+    组合消息
+    """
+    msg = ''
+    return msg
+
+
+def send_msg(wechat_id, msg):
     """
     发送消息
     :return:
     """
+    itchat.send(msg, wechat_id)
 
 
 def run():
     """
     search_students_info -> search_wechat -> comb_info -> send_msg
-    :return:
     """
+    whole_hours = _get_whole_hours()
     students_info = search_students_info()
     for stu_info in students_info:
         wechat_id = search_wechat_id(stu_info[:2])
+        if wechat_id:
+            msg = comb_info(wechat_id, whole_hours, stu_info)
+            send_msg(wechat_id, msg)
 
 if __name__ == '__main__':
     run()
