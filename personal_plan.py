@@ -1,12 +1,13 @@
 #!/usr/local/bin/python3.5
 import itchat
+import datetime
 from statistic import db as info_db
 from getQA import db as wechat_db
 from getQA import db_table_column, data_save
-import datetime
 db_table_column['user_wechat'] = 'username, wechat, new_wechat'
+db_table_column['schedule'] = 'course_id, schedule, title, accumulate_hours'
 itchat.auto_login(hotReload=True)
-courses = (1, 2)
+courses = ('1', '2')
 
 
 def search_students_info(course_id):
@@ -17,7 +18,8 @@ def search_students_info(course_id):
     """
     cur = info_db.cursor()
     cur.execute('''
-    SELECT user.username, bill.wechat, vip.remind_days, plan.start_date, plan.end_date, plan.course_id, SUM(lesson.hour)
+    SELECT user.username, bill.wechat, vip.remind_days, COUNT(learned.lesson_id),
+    plan.start_date, plan.end_date, plan.course_id, SUM(lesson.hour)
     FROM school_learnedlesson learned
     LEFT JOIN school_lesson lesson
     ON lesson.id = learned.lesson_id
@@ -46,7 +48,9 @@ def search_wechat_id(stu_info):
     username, wechat = stu_info
     we_user = itchat.search_friends(wechat) or itchat.search_friends(username)
     if len(we_user) == 1:
-        wechat_id = we_user['UserName']
+        # print(we_user)
+        # print(we_user[0])
+        wechat_id = we_user[0]['UserName']
     else:
         wechat_id = _confirm(stu_info)
         # if new_wechat:
@@ -80,10 +84,12 @@ def comb_info(wechat_id, whole_hours, info):
     """
     组合信息，返回消息模版
     :return:
+    SELECT user.username, bill.wechat, vip.remind_days, COUNT(learned.lesson_id),
+    plan.start_date, plan.end_date, plan.course_id, SUM(lesson.hour)
     """
-    username, _, start_time, end_time, course_id, rate, present_lesson, learned_hours = info
-    aim_lesson = _get_aim_lesson(whole_hours, learned_hours, end_time, present_lesson)
-    model = _model_choice(whole_hours, start_time, end_time)
+    username, _, remind_days, present_lessons, start_date, end_date, course_id, learned_hours = info
+    aim_lesson = _get_aim_lesson(whole_hours, learned_hours, end_date, present_lessons)
+    model = _model_choice(whole_hours, start_date, end_date)
     msg = _get_msg(username, aim_lesson, model)
     return msg
 
@@ -104,12 +110,23 @@ def _get_whole_hours(course_id):
     return hours
 
 
-def _get_aim_lesson(whole_hours, learned_hours, end_time, present_lesson):
+def _get_aim_lesson(whole_hours, learned_hours, end_date, present_lesson):
     """
     计算目标课程
     """
     now = datetime.datetime.now()
-    aim_lesson = ''
+    days = (end_date - now).days
+    rest_hours = whole_hours - learned_hours
+    learned_hours += rest_hours / days
+    cur = wechat_db.cursor()
+    cur.execute('''
+        SELECT schedule, title
+        FROM schedule
+        WHERE accumulate_hours >= '{learned_hours}'
+        ORDER BY accumulate_hours
+        LIMIT 1
+    '''.format(learned_hours=learned_hours))
+    aim_lesson = ' '.join(cur.fetchone())
     return aim_lesson
 
 
@@ -137,10 +154,49 @@ def send_msg(wechat_id, msg):
     itchat.send(msg, wechat_id)
 
 
-def run():
+def update_schedule(is_update):
+    if is_update:
+        cur = info_db.cursor()
+        cur_wechat = wechat_db.cursor()
+        cur_wechat.execute('TRUNCATE TABLE schedule')
+        for course_id in courses:
+            cur.execute('''
+                SELECT chapter.seq, lesson.seq, chapter.title, lesson.title, lesson.hour
+                FROM school_chapter chapter
+                LEFT JOIN school_lesson lesson
+                ON chapter.id = lesson.chapter_id
+                WHERE chapter.course_id = '{course_id}'
+                ORDER BY chapter.seq, lesson.seq
+            '''.format(course_id=course_id))
+            accumulate_hours = 0
+            for row in cur:
+                accumulate_hours += row[-1]
+                _update_db(course_id, accumulate_hours, row)
+
+
+def _update_db(course_id, accumulate_hours, row):
+    chapter_id, lesson_id, chapter_title, lesson_title, _ = row
+    schedule = '%s-%s' % (chapter_id, lesson_id)
+    title = '%s-%s' % (chapter_title, lesson_title)
+    values = "%s, '%s', '%s', %s" % (course_id, schedule, title, accumulate_hours)
+    data_save('schedule', values)
+    # cur = wechat_db.cursor()
+    # cur.execute('''
+    #     INSERT INTO schedule
+    #     ('course_id, schedule, title, hours')
+    #     SELECT '1', '22', '333', '1'
+    #     FROM dual
+    #     WHERE NOT EXISTS
+    #     (SELECT * FROM schedule
+    #     WHERE schedule.title='aaa')
+    # ''')
+
+
+def run(is_update_schedule=False):
     """
     search_students_info -> search_wechat -> comb_info -> send_msg
     """
+    update_schedule(is_update_schedule)
     for course_id in courses:
         whole_hours = _get_whole_hours(course_id)
         students_info = search_students_info(course_id)
