@@ -87,10 +87,11 @@ def comb_info(wechat_id, whole_hours, info):
     SELECT user.username, bill.wechat, vip.remind_days, COUNT(learned.lesson_id),
     plan.start_date, plan.end_date, plan.course_id, SUM(lesson.hour)
     """
-    username, _, remind_days, present_lessons, start_date, end_date, course_id, learned_hours = info
-    aim_lesson = _get_aim_lesson(whole_hours, learned_hours, end_date, present_lessons)
-    model = _model_choice(whole_hours, start_date, end_date)
-    msg = _get_msg(username, aim_lesson, model)
+    username, wechat, remind_days, present_lesson, start_date, end_date, course_id, learned_hours = info
+    now = datetime.datetime.now()
+    aim_lesson = _get_aim_lesson(whole_hours, learned_hours, end_date, now)
+    model = _model_choice(whole_hours, start_date, end_date, now)
+    msg = _get_msg(wechat_id, username, aim_lesson, model)
     return msg
 
 
@@ -110,11 +111,10 @@ def _get_whole_hours(course_id):
     return hours
 
 
-def _get_aim_lesson(whole_hours, learned_hours, end_date, present_lesson):
+def _get_aim_lesson(whole_hours, learned_hours, end_date, now):
     """
     计算目标课程
     """
-    now = datetime.datetime.now()
     days = (end_date - now).days
     rest_hours = whole_hours - learned_hours
     learned_hours += rest_hours / days
@@ -130,15 +130,16 @@ def _get_aim_lesson(whole_hours, learned_hours, end_date, present_lesson):
     return aim_lesson
 
 
-def _model_choice(whole_hours, start_time, end_time):
+def _model_choice(whole_hours, start_date, end_date, now):
     """
     选择消息模版
     """
+
     model = ''
     return model
 
 
-def _get_msg(username, aim_lesson, model):
+def _get_msg(wechat_id, username, aim_lesson, model):
     """
     组合消息
     """
