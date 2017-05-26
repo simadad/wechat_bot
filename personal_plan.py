@@ -15,15 +15,20 @@ def search_students_info():
     """
     cur = info_db.cursor()
     cur.execute('''
-    SELECT MAX(chapter.seq), COUNT(lesson.seq), user.username
+    SELECT user.username, bill.wechat, vip.remind_days, plan.start_date, plan.end_date, SUM(lesson.hour)
     FROM school_learnedlesson learned
     LEFT JOIN school_lesson lesson
     ON lesson.id = learned.lesson_id
     LEFT JOIN auth_user user
     ON user.id = learned.user_id
-    LEFT JOIN school_chapter chapter
-    ON chapter.id = lesson.chapter_id
-    WHERE user.username = '{username}'
+    LEFT JOIN school_plan plan
+    ON user.id = plan.user_id
+    LEFT JOIN vip_premium vip
+    ON user.id = vip.user_id
+    LEFT JOIN vip_bill bill
+    ON user.id = bill.vip_user_id
+    WHERE vip.remind_plan = true
+    OR vip.remind = true
     GROUP BY user.username
     ''')
     for row in cur:
@@ -73,7 +78,7 @@ def comb_info(wechat_id, whole_hours, info):
     组合信息，返回消息模版
     :return:
     """
-    username, _, start_time, end_time, course_id, rate, learned_hours, present_lesson = info
+    username, _, start_time, end_time, course_id, rate, present_lesson, learned_hours = info
     aim_lesson = _get_aim_lesson(whole_hours, learned_hours, end_time, present_lesson)
     model = _model_choice(whole_hours, start_time, end_time)
     msg = _get_msg(username, aim_lesson, model)
