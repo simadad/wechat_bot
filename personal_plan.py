@@ -1,6 +1,7 @@
 #!/usr/local/bin/python3.5
 import itchat
 import datetime
+import json
 from statistic import db as info_db
 from getQA import db as wechat_db
 from getQA import db_table_column, data_save
@@ -80,7 +81,7 @@ def _confirm(stu_info):
     return False
 
 
-def comb_info(wechat_id, whole_hours, info):
+def comb_info(whole_hours, info):
     """
     组合信息，返回消息模版
     :return:
@@ -88,10 +89,10 @@ def comb_info(wechat_id, whole_hours, info):
     plan.start_date, plan.end_date, plan.course_id, SUM(lesson.hour)
     """
     username, wechat, remind_days, present_lesson, start_date, end_date, course_id, learned_hours = info
-    now = datetime.datetime.now()
+    now = datetime.datetime.now().date()
     aim_lesson = _get_aim_lesson(whole_hours, learned_hours, end_date, now)
-    model = _model_choice(whole_hours, start_date, end_date, now)
-    msg = _get_msg(wechat_id, username, aim_lesson, model)
+    model = _model_choice(whole_hours, start_date, end_date, now, learned_hours)
+    msg = _get_msg(username, aim_lesson, model)
     return msg
 
 
@@ -107,7 +108,7 @@ def _get_whole_hours(course_id):
         ON lesson.chapter_id = chapter.id
         WHERE chapter.course_id = '{course_id}'
     '''.format(course_id=course_id))
-    hours = cur.fetchone()
+    hours = cur.fetchone()[0]
     return hours
 
 
@@ -115,9 +116,12 @@ def _get_aim_lesson(whole_hours, learned_hours, end_date, now):
     """
     计算目标课程
     """
-    days = (end_date - now).days
+    days = (end_date - now).days + 1
     rest_hours = whole_hours - learned_hours
-    learned_hours += rest_hours / days
+    if days > 0:
+        learned_hours += rest_hours / days
+    else:
+        learned_hours = whole_hours
     cur = wechat_db.cursor()
     cur.execute('''
         SELECT schedule, title
@@ -126,24 +130,33 @@ def _get_aim_lesson(whole_hours, learned_hours, end_date, now):
         ORDER BY accumulate_hours
         LIMIT 1
     '''.format(learned_hours=learned_hours))
-    aim_lesson = ' '.join(cur.fetchone())
+    aim_lesson = ' '.join(cur.fetchone()[0])
     return aim_lesson
 
 
-def _model_choice(whole_hours, start_date, end_date, now):
+def _model_choice(whole_hours, start_date, end_date, now_date, learned_hours):
     """
     选择消息模版
     """
-
-    model = ''
+    whole_days = (end_date - start_date).days
+    learned_days = (now_date - start_date).days
+    if learned_hours/whole_hours >= learned_days/whole_days:
+        model = 'ahead'
+    else:
+        model = 'behind'
     return model
 
 
-def _get_msg(wechat_id, username, aim_lesson, model):
+def _get_msg(username, aim_lesson, model):
     """
     组合消息
     """
-    msg = ''
+    with open('etc/base', encoding='utf8') as f:
+        base = f.read()
+    with open('etc/model.json', encoding='utf8') as f:
+        text = json.load(f)
+        tips = text[model]
+    msg = base.format(username=username, aim_lesson=aim_lesson, tips=tips)
     return msg
 
 
@@ -204,8 +217,9 @@ def run(is_update_schedule=False):
         for stu_info in students_info:
             wechat_id = search_wechat_id(stu_info[:2])
             if wechat_id:
-                msg = comb_info(wechat_id, whole_hours, stu_info)
+                msg = comb_info(whole_hours, stu_info)
                 send_msg(wechat_id, msg)
+                # print(msg)
 
 if __name__ == '__main__':
     run()
