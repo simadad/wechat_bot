@@ -41,22 +41,36 @@ def search_students_info(course_id):
         yield row
 
 
+def _is_today(stu_info):
+    """
+    确认当天是否推送
+    """
+    # TODO 结构优化
+    username, wechat, remind_days, present_lesson, start_date, end_date, course_id, learned_hours = stu_info
+    now = datetime.datetime.now().date()
+    days = (now - start_date).days
+    if now <= end_date and days % remind_days == 0:
+        return True
+    else:
+        return False
+
+
 def search_wechat_id(stu_info):
     """
     接受username，返回微信最新UserName
     :return:
     """
     username, wechat = stu_info
-    we_user = itchat.search_friends(wechat) or itchat.search_friends(username)
-    if len(we_user) == 1:
-        # print(we_user)
-        # print(we_user[0])
-        wechat_id = we_user[0]['UserName']
+    user = itchat.search_friends(wechat) or itchat.search_friends(username)
+    if len(user) == 1:
+        # print(user)
+        # print(user[0])
+        wechat_id = user[0]['UserName']
     else:
         wechat_id = _confirm(stu_info)
         # if new_wechat:
-        #     we_user = itchat.search_friends(new_wechat)
-        #     wechat_id = we_user['UserName']
+        #     user = itchat.search_friends(new_wechat)
+        #     wechat_id = user['UserName']
         # else:
         #      wechat_id = False
     return wechat_id
@@ -224,6 +238,8 @@ def run(is_update_schedule=False):
         whole_hours = _get_whole_hours(course_id)
         students_info = search_students_info(course_id)
         for stu_info in students_info:
+            if not _is_today(stu_info):
+                continue
             wechat_id = search_wechat_id(stu_info[:2])
             # TODO 课程提醒接收频率设置
             if wechat_id:
@@ -233,3 +249,4 @@ def run(is_update_schedule=False):
 
 if __name__ == '__main__':
     run(True)
+t 
