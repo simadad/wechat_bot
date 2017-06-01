@@ -67,6 +67,8 @@ def _confirm(stu_info):
     本地数据库确认可用微信号
     :return:
     """
+    print('missing: ', stu_info)
+    # TODO 正确微信号确认
     # username, wechat = stu_info
     # cur = wechat_db.cursor()
     # cur.execute('''
@@ -130,7 +132,10 @@ def _get_aim_lesson(whole_hours, learned_hours, end_date, now):
         ORDER BY accumulate_hours
         LIMIT 1
     '''.format(learned_hours=learned_hours))
-    aim_lesson = ' '.join(cur.fetchone()[0])
+    resule = cur.fetchone()
+    # print(resule)
+    aim_lesson = ' '.join(resule)
+    # print('aim: ', aim_lesson)
     return aim_lesson
 
 
@@ -165,7 +170,11 @@ def send_msg(wechat_id, msg):
     发送消息
     :return:
     """
-    itchat.send(msg, wechat_id)
+    msg = wechat_id + ':\n' + msg
+    room = itchat.search_chatrooms('A')
+    username = room[0]['UserName']
+    # itchat.send(msg, wechat_id)
+    itchat.send(msg, username)
 
 
 def update_schedule(is_update):
@@ -216,10 +225,11 @@ def run(is_update_schedule=False):
         students_info = search_students_info(course_id)
         for stu_info in students_info:
             wechat_id = search_wechat_id(stu_info[:2])
+            # TODO 课程提醒接收频率设置
             if wechat_id:
                 msg = comb_info(whole_hours, stu_info)
                 send_msg(wechat_id, msg)
                 # print(msg)
 
 if __name__ == '__main__':
-    run()
+    run(True)
