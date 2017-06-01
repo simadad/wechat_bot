@@ -2,6 +2,7 @@
 import itchat
 import datetime
 import json
+from functools import wraps
 from statistic import db as info_db
 from getQA import db as wechat_db
 from getQA import db_table_column, data_save
@@ -21,6 +22,25 @@ now = datetime.datetime.now().date()
 itchat.auto_login(hotReload=True)
 
 
+def log_this(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        try:
+            f(*args, **kwargs)
+        except Exception as e:
+            log_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            # func = 'Function: %s' % f.__name__
+            para = 'args: {args}\n kwargs: {kwargs}'.format(args=args, kwargs=kwargs)
+            # error = 'Error: %s' % e
+            log = '{log_time}\n{func}\n{para}\n{error}\n{cut:-<40}\n\n'.format(
+                log_time=log_time, func=f.__name__, para=para, error=e, cut=''
+            )
+            with open(log_path['log_error'], 'a', encoding='utf8') as file:
+                file.write(log)
+    return wrapper
+
+
+@log_this
 def search_students_info(course_id):
     """
     搜索并返回符合条件的信息生成器
@@ -51,6 +71,7 @@ def search_students_info(course_id):
         yield row
 
 
+@log_this
 def _is_today(stu_info):
     """
     确认当天是否推送
@@ -64,6 +85,7 @@ def _is_today(stu_info):
         return False
 
 
+@log_this
 def search_wechat_id(stu_info):
     """
     接受username，返回微信最新UserName
@@ -85,6 +107,7 @@ def search_wechat_id(stu_info):
     return wechat_id
 
 
+@log_this
 def _confirm(stu_info):
     """
     本地数据库确认可用微信号
@@ -106,6 +129,7 @@ def _confirm(stu_info):
     return False
 
 
+@log_this
 def comb_info(whole_hours, info):
     """
     组合信息，返回消息模版
@@ -121,6 +145,7 @@ def comb_info(whole_hours, info):
     return msg
 
 
+@log_this
 def _get_whole_hours(course_id):
     """
     获取总课时
@@ -137,6 +162,7 @@ def _get_whole_hours(course_id):
     return hours
 
 
+@log_this
 def _get_aim_lesson(whole_hours, learned_hours, end_date):
     """
     计算目标课程
@@ -162,6 +188,7 @@ def _get_aim_lesson(whole_hours, learned_hours, end_date):
     return aim_lesson
 
 
+@log_this
 def _model_choice(whole_hours, start_date, end_date, learned_hours):
     """
     选择消息模版
@@ -175,6 +202,7 @@ def _model_choice(whole_hours, start_date, end_date, learned_hours):
     return model
 
 
+@log_this
 def _get_msg(username, aim_lesson, model):
     """
     组合消息
@@ -188,6 +216,7 @@ def _get_msg(username, aim_lesson, model):
     return msg
 
 
+@log_this
 def send_msg(wechat_id, msg, stu_info):
     """
     发送消息
@@ -207,6 +236,7 @@ def send_msg(wechat_id, msg, stu_info):
         f.write(log)
 
 
+@log_this
 def update_schedule(is_update):
     if is_update:
         cur = info_db.cursor()
@@ -227,6 +257,7 @@ def update_schedule(is_update):
                 _update_db(course_id, accumulate_hours, row)
 
 
+@log_this
 def _update_db(course_id, accumulate_hours, row):
     chapter_id, lesson_id, chapter_title, lesson_title, _ = row
     schedule = '%s-%s' % (chapter_id, lesson_id)
@@ -245,31 +276,24 @@ def _update_db(course_id, accumulate_hours, row):
     # ''')
 
 
+@log_this
 def run(is_update_schedule=False):
     """
     search_students_info -> search_wechat -> comb_info -> send_msg
     """
-    try:
-        update_schedule(is_update_schedule)
-        for course_id in courses:
-            whole_hours = _get_whole_hours(course_id)
-            students_info = search_students_info(course_id)
-            for stu_info in students_info:
-                if not _is_today(stu_info):
-                    continue
-                wechat_id = search_wechat_id(stu_info[:2])
-                # TODO 课程提醒接收频率设置
-                if wechat_id:
-                    msg = comb_info(whole_hours, stu_info)
-                    send_msg(wechat_id, msg, stu_info[:2])
-                    # print(msg)
-    except Exception as e:
-        log_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        with open(log_path['log_error'], 'a', encoding='utf8') as f:
-            log = '{log_time:<20}{func:<20}:\n{error_msg}\n{cut:<-40}\n\n'.format(
-                log_time=log_time, func='', error_msg=e, cut=''
-            )
-            f.write(log)
+    update_schedule(is_update_schedule)
+    for course_id in courses:
+        whole_hours = _get_whole_hours(course_id)
+        students_info = search_students_info(course_id)
+        for stu_info in students_info:
+            if not _is_today(stu_info):
+                continue
+            wechat_id = search_wechat_id(stu_info[:2])
+            # TODO 课程提醒接收频率设置
+            if wechat_id:
+                msg = comb_info(whole_hours, stu_info)
+                send_msg(wechat_id, msg, stu_info[:2])
+                # print(msg)
 
 if __name__ == '__main__':
     run(True)

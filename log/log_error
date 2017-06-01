@@ -1,5 +1,7 @@
 example:
-time                function            :
-error_msg
+@time@
+@function@
+@parameters@
+@error_msg@
 ----------------------------------------
 =============================
