@@ -14,12 +14,9 @@ mpl.rcParams['axes.unicode_minus'] = False           # 解决保存图像是负�
 zjs = 3                                                 # 助教人数，确保助教先入群！
 
 
-def get_times(lst: list, step: int):
+def _get_times(lst: list, step: int):
     """
     对传入的列表 lst 按间隔 step 统计次数，返回字典
-    :param lst:
-    :param step:
-    :return:
     """
     result = {}
     for i in lst:
@@ -103,7 +100,7 @@ def plot_process(ax, process, limit):
     # ylab = ['第%d章' % a for a in range(13)]
     # ylab.insert(0, ' ')
 
-    process_count = get_times(process, 1)
+    process_count = _get_times(process, 1)
     x = list(process_count.keys())
     y = list(process_count.values())
     # [print(i) for i in zip(x, y)]
@@ -138,7 +135,7 @@ def plot_total(ax, total, limit):
     课程总数图
     """
     limit = limit//10 + 0.5
-    total_count = get_times(total, 10)
+    total_count = _get_times(total, 10)
     x = list(total_count.keys())
     y = list(total_count.values())
     ymax = max(y)
