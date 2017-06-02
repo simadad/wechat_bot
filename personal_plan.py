@@ -114,7 +114,14 @@ def _confirm(stu_info):
     本地数据库确认可用微信号
     :return:
     """
-    print('missing: ', stu_info)
+    log_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    username, wechat = stu_info
+    log = '{time:<40}:\n{username:<20}{wechat:<20}\n{cut:-<40}\n\n'.format(
+        time=log_time, username=username, wechat=wechat, cut=''
+    )
+    with open('log/log_missing', 'a', encoding='utf8') as f:
+        f.write(log)
+    # print('missing: ', stu_info)
     # TODO 正确微信号确认
     # username, wechat = stu_info
     # cur = wechat_db.cursor()
