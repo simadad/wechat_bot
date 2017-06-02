@@ -26,7 +26,8 @@ def log_this(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
         try:
-            f(*args, **kwargs)
+            result = f(*args, **kwargs)
+            return result
         except Exception as e:
             log_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             # func = 'Function: %s' % f.__name__
