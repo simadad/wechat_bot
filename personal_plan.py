@@ -3,9 +3,11 @@ import itchat
 import datetime
 import json
 from functools import wraps
-from statistic import db as info_db
+# from statistic import db as info_db
+from plan_test import db as info_db
 from getQA import db as wechat_db
 from getQA import db_table_column, data_save
+
 
 db_table_column['user_wechat'] = 'username, wechat, new_wechat'
 db_table_column['schedule'] = 'course_id, schedule, title, accumulate_hours'
@@ -64,9 +66,31 @@ def search_students_info(course_id):
     LEFT JOIN vip_bill bill
     ON user.id = bill.vip_user_id
     WHERE vip.remind_plan = true
-    OR vip.remind = true
+    AND vip.remind = false
     AND plan.course_id = '{course_id}'
     GROUP BY user.username
+    '''.format(course_id=course_id))
+    for row in cur:
+        yield row
+
+
+def search_students_info2(course_id):
+    """
+    搜索长时间未学习的学生信息
+    """
+    cur = info_db.cursor()
+    cur.execute('''
+        SELECT user.username, bill.wechat
+        FROM auth_user user
+        LEFT JOIN vip_bill bill
+        ON user.id = bill.vip_user_id
+        LEFT JOIN vip_premium vip
+        ON user.id = vip.user_id
+        LEFT JOIN school_plan plan
+        ON user.id = plan.user_id
+        WHERE vip.remind = true
+        AND plan.course_id = '{course_id}'
+        GROUP BY user.username
     '''.format(course_id=course_id))
     for row in cur:
         yield row
@@ -150,6 +174,20 @@ def comb_info(whole_hours, info):
     aim_lesson = _get_aim_lesson(whole_hours, learned_hours, end_date)
     model = _model_choice(whole_hours, start_date, end_date, learned_hours)
     msg = _get_msg(username, aim_lesson, model)
+    return msg
+
+
+def comb_info2(info):
+    """
+    长时间未学习提醒消息
+    """
+    username, wechat = info
+    msg = '''
+        {username}，根据我们后天的记录，你已经超过两周没有学习新课程了。是遇上什么问题了吗？
+        如果需要帮助，可以在答疑群中联系我们的助教。
+
+        [此条为自动提醒，如需关闭请访问 http://crossincode.com/vip/mute/ ]
+    '''.format(username=username)
     return msg
 
 
@@ -297,11 +335,17 @@ def run(is_update_schedule=False):
             if not _is_today(stu_info):
                 continue
             wechat_id = search_wechat_id(stu_info[:2])
-            # TODO 课程提醒接收频率设置
             if wechat_id:
                 msg = comb_info(whole_hours, stu_info)
                 send_msg(wechat_id, msg, stu_info[:2])
                 # print(msg)
+        students_info2 = search_students_info2(course_id)
+        # TODO 代码重构
+        for stu_info in students_info2:
+            wechat_id = search_wechat_id(stu_info)
+            if wechat_id:
+                msg = comb_info(whole_hours, stu_info)
+                send_msg(wechat_id, msg, stu_info[:2])
 
 if __name__ == '__main__':
     run(True)
