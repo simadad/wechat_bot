@@ -3,7 +3,8 @@ import itchat
 import datetime
 import json
 from functools import wraps
-from statistic import db as info_db
+# from statistic import db as info_db
+from plan_test import db as info_db
 from getQA import db as wechat_db
 from getQA import db_table_column, data_save
 
@@ -64,7 +65,7 @@ def search_students_info(course_id):
     LEFT JOIN vip_bill bill
     ON user.id = bill.vip_user_id
     WHERE vip.remind_plan = true
-    OR vip.remind = true
+    AND vip.remind = false
     AND plan.course_id = '{course_id}'
     GROUP BY user.username
     '''.format(course_id=course_id))
@@ -79,11 +80,12 @@ def _is_today(stu_info):
     """
     # TODO 结构优化
     username, wechat, remind_days, present_lesson, start_date, end_date, course_id, learned_hours = stu_info
-    days = (now - start_date).days
-    if now <= end_date and days % remind_days == 0:
-        return True
-    else:
-        return False
+    if start_date and end_date is not None:
+        days = (now - start_date).days
+        if now <= end_date and days % remind_days == 0:
+            return True
+        else:
+            return False
 
 
 @log_this
@@ -201,7 +203,7 @@ def _model_choice(whole_hours, start_date, end_date, learned_hours):
     """
     选择消息模版
     """
-    whole_days = (end_date - start_date).days
+    whole_days = (end_date - start_date).days + 1
     learned_days = (now - start_date).days
     if learned_hours/whole_hours >= learned_days/whole_days:
         model = 'ahead'
@@ -231,7 +233,7 @@ def send_msg(wechat_id, msg, stu_info):
     :return:
     """
     msg = wechat_id + ':\n' + msg
-    room = itchat.search_chatrooms('A')
+    room = itchat.search_chatrooms('B')
     username = room[0]['UserName']
     # itchat.send(msg, wechat_id)
     itchat.send(msg, username)
@@ -284,24 +286,37 @@ def _update_db(course_id, accumulate_hours, row):
     # ''')
 
 
-@log_this
+# @log_this
 def run(is_update_schedule=False):
     """
     search_students_info -> search_wechat -> comb_info -> send_msg
     """
     update_schedule(is_update_schedule)
+    # print(111111111)
     for course_id in courses:
+        # print(22222222222)
         whole_hours = _get_whole_hours(course_id)
+        # print(33333333333)
         students_info = search_students_info(course_id)
+        # print(44444444444444)
         for stu_info in students_info:
+            print(555555)
             if not _is_today(stu_info):
+                print(6666666)
                 continue
             wechat_id = search_wechat_id(stu_info[:2])
+            print(777777777)
             # TODO 课程提醒接收频率设置
-            if wechat_id:
-                msg = comb_info(whole_hours, stu_info)
-                send_msg(wechat_id, msg, stu_info[:2])
-                # print(msg)
+            msg = comb_info(whole_hours, stu_info)
+            print(88888)
+            wechat_id = str(wechat_id)
+            send_msg(wechat_id, msg, stu_info[:2])
+            print(9999)
+            # if wechat_id:
+            #     print(88888888)
+            #     msg = comb_info(whole_hours, stu_info)
+            #     send_msg(wechat_id, msg, stu_info[:2])
+            # print(msg)
 
 if __name__ == '__main__':
-    run(True)
+    run()
