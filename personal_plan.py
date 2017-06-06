@@ -9,6 +9,8 @@ from getQA import db as wechat_db
 from getQA import db_table_column, data_save
 
 
+info_db.cursor().execute("SET SESSION sql_mode = 'STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION'")
+
 db_table_column['user_wechat'] = 'username, wechat, new_wechat'
 db_table_column['schedule'] = 'course_id, schedule, title, accumulate_hours'
 courses = ('1', '2')
@@ -118,6 +120,7 @@ def search_wechat_id(stu_info):
     :return:
     """
     username, wechat = stu_info
+    print(username, wechat, end=' | ')
     user = itchat.search_friends(wechat) or itchat.search_friends(username)
     if len(user) == 1:
         # print(user)
@@ -125,11 +128,7 @@ def search_wechat_id(stu_info):
         wechat_id = user[0]['UserName']
     else:
         wechat_id = _confirm(stu_info)
-        # if new_wechat:
-        #     user = itchat.search_friends(new_wechat)
-        #     wechat_id = user['UserName']
-        # else:
-        #      wechat_id = False
+    print(wechat_id, end=' / ')
     return wechat_id
 
 
@@ -141,6 +140,8 @@ def _confirm(stu_info):
     """
     log_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     username, wechat = stu_info
+    if wechat is None:
+        wechat = 'NoWeChat'
     log = '{time:<40}:\n{username:<20}{wechat:<20}\n{cut:-<40}\n\n'.format(
         time=log_time, username=username, wechat=wechat, cut=''
     )
@@ -184,7 +185,7 @@ def comb_info2(info):
     """
     username, wechat = info
     msg = '''
-        {username}，根据我们后天的记录，你已经超过两周没有学习新课程了。是遇上什么问题了吗？
+        {username}，根据我们后台的记录，你已经超过两周没有学习新课程了。是遇上什么问题了吗？
         如果需要帮助，可以在答疑群中联系我们的助教。
 
         [此条为自动提醒，如需关闭请访问 http://crossincode.com/vip/mute/ ]
@@ -270,11 +271,14 @@ def send_msg(wechat_id, msg, stu_info):
     :return:
     """
     msg = wechat_id + ':\n' + msg
-    room = itchat.search_chatrooms('B')
+    room = itchat.search_chatrooms('A')
     username = room[0]['UserName']
     # itchat.send(msg, wechat_id)
+    # print(msg, username)
     itchat.send(msg, username)
     username, wechat = stu_info
+    if wechat is None:
+        wechat = ' '
     log_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     with open(log_path['log_msg'], 'a', encoding='utf8') as f:
         log = '{username:<20}{wechat:<20}{log_time:<20}:\n{msg}\n{cut:-<60}\n\n'.format(
@@ -329,30 +333,30 @@ def run(is_update_schedule=False):
     search_students_info -> search_wechat -> comb_info -> send_msg
     """
     update_schedule(is_update_schedule)
-    # print(111111111)
     for course_id in courses:
-        # print(22222222222)
         whole_hours = _get_whole_hours(course_id)
-        # print(33333333333)
         students_info = search_students_info(course_id)
-        # print(44444444444444)
         for stu_info in students_info:
-            print(555555)
+            # print(stu_info[0], stu_info[1])
             if not _is_today(stu_info):
-                print(6666666)
                 continue
             wechat_id = search_wechat_id(stu_info[:2])
-            if wechat_id:
-                msg = comb_info(whole_hours, stu_info)
-                send_msg(wechat_id, msg, stu_info[:2])
-                # print(msg)
+            # if wechat_id:
+            if not wechat_id:               # to del
+                wechat_id = 'No_WeChatId'       # to del
+            print(wechat_id, 111111111)
+            msg = comb_info(whole_hours, stu_info)
+            send_msg(wechat_id, msg, stu_info[:2])
         students_info2 = search_students_info2(course_id)
         # TODO 代码重构
         for stu_info in students_info2:
             wechat_id = search_wechat_id(stu_info)
-            if wechat_id:
-                msg = comb_info(whole_hours, stu_info)
-                send_msg(wechat_id, msg, stu_info[:2])
+            # if wechat_id:
+            if not wechat_id:               # to del
+                wechat_id = 'No_WeChatId'       # to del
+            print(wechat_id, 22222222)
+            msg = comb_info2(stu_info)
+            send_msg(wechat_id, msg, stu_info[:2])
 
 if __name__ == '__main__':
     run()
