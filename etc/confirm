@@ -1,0 +1,11 @@
+课程：{course:<10}全部记录：{right}!
+非当日督促：	{skip_r}
+非当日提醒：	{skip_rp}
+完结人数：		{finished}
+缺失信息：		{lack}
+未推送小计：	{skip}
+无微信人数: 	{missing}
+推送次数：		{send}
+总人数：		{total}
+{log_time}
+=======================

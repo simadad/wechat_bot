@@ -1,0 +1,13 @@
+SELECT user.username, bill.wechat, vip.remind_days, COUNT(learned.lesson_id),
+plan.start_date, plan.end_date, plan.course_id, SUM(lesson.hour)
+FROM school_learnedlesson learned
+LEFT JOIN school_lesson lesson
+ON lesson.id = learned.lesson_id
+LEFT JOIN auth_user user
+ON user.id = learned.user_id
+LEFT JOIN school_plan plan
+ON user.id = plan.user_id
+LEFT JOIN vip_premium vip
+ON user.id = vip.user_id
+LEFT JOIN vip_bill bill
+ON user.id = bill.vip_user_id
