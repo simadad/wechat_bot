@@ -1,0 +1,5 @@
+{
+	"remind_plan": "WHERE vip.remind_plan = true AND vip.remind = false",
+	"remind": "WHERE vip.remind = true AND vip.remind_plan = false",
+	"remind_and": "WHERE vip.remind_plan = true AND vip.remind = true"
+}
