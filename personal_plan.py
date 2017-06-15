@@ -270,10 +270,10 @@ def send_msg(wechat_id, msg, stu_info):
     """
     msg = wechat_id + ':\n' + msg
     room = itchat.search_chatrooms('B')
-    username = room[0]['UserName']
+    room_id = room[0]['UserName']
     # itchat.send(msg, wechat_id)
     # print(msg, username)
-    # itchat.send(msg, username)            # TODO del #
+    itchat.send(msg, room_id)            # TODO del #
     confirm['send'] += 1
     username, wechat = stu_info
     if wechat is None:
