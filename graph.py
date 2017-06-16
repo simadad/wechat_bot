@@ -44,7 +44,6 @@ def get_time(members, gap=gap_day):
     cur = db.cursor()
     now = thistime.strftime('%Y-%m-%d %H:%M:%S')
     for username in members:
-        print(username)
         cur.execute('''
         SELECT learned.learn_time
         FROM school_learnedlesson learned
