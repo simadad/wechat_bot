@@ -1,7 +1,9 @@
 import itchat
 import datetime
+import os
 from statistic import db
 from matplotlib import pyplot as plt
+from personal_plan import log_this
 
 # thistime = datetime.datetime.now()
 thistime = datetime.datetime.strptime('2017-05-20', '%Y-%m-%d')
@@ -14,10 +16,15 @@ x_label = '星期'
 # y_label = '时辰'
 y_label = '时段'
 title = '上周课程活力统计图'
-data = [[0 for _ in range(gap_day)] for __ in range(int(24/gap_hour))]
 itchat.auto_login(hotReload=True)
+log_path = 'log/log_graphs'
+
+graph_dir = 'graphs'
+graph_send_dir = 'send'
+groups = ['20170424', ]
 
 
+@log_this
 def get_members(name: str):
     """
     根据群名称，返回群ID、群成员生成器
@@ -37,6 +44,7 @@ def get_members(name: str):
             yield m['NickName']
 
 
+@log_this
 def get_time(members, gap=gap_day):
     """
     接收群成员，统计时间区间（默认最近7天），返回时间序列生成器
@@ -56,19 +64,24 @@ def get_time(members, gap=gap_day):
             yield time[0]
 
 
-def split_time(time: datetime.datetime):
-    days = (thistime - time).days
-    hours = time.hour//gap_hour
-    data[hours][days] += 1
+@log_this
+def get_data(all_time):
+    data = [[0 for _ in range(gap_day)] for __ in range(int(24 / gap_hour))]
+    for time in all_time:
+        days = (thistime - time).days
+        hours = time.hour // gap_hour
+        data[hours][days] += 1
+    return data
 
 
-def make_graph(datas):
-    datas = [[1, 0, 3, 5, 2, 1, 6],
-             [7, 3, 1, 7, 3, 5, 8],
-             [2, 3, 4, 5, 2, 1, 6],
-             [1, 6, 2, 3, 6, 5, 4]]
+@log_this
+def make_graph(name, data):
+    # data = [[1, 0, 3, 5, 2, 1, 6],
+    #          [7, 3, 1, 7, 3, 5, 8],
+    #          [2, 3, 4, 5, 2, 1, 6],
+    #          [1, 6, 2, 3, 6, 5, 4]]
     fig, ax = plt.subplots()
-    im = ax.imshow(datas, plt.cm.summer_r)
+    im = ax.imshow(data, plt.cm.summer_r)
     plt.colorbar(im)
     ax.set_title(title, size=18)
     ax.set_xticks(range(gap_day))
@@ -82,8 +95,14 @@ def make_graph(datas):
     ax.set_ylabel(y_label, size=15)
     ax.set_xlabel(x_label, size=15)
     # plt.show()
-    graph_name = thistime.strftime('%Y-%m-%d') + '.png'
-    plt.savefig(graph_name)
+    graph_name = graph_dir + '/' + name + '/' + thistime.strftime('%Y-%m-%d') + '.png'
+    try:
+        plt.savefig(graph_name)
+    except FileNotFoundError:
+        os.mkdir(graph_dir+'/'+name)
+        plt.savefig(graph_name)
+    with open(log_path, 'a', encoding='utf8') as f:
+        f.write('{time:<30}{graph:<50}SAVED!\n'.format(time=thistime, graph=graph_name))
     return graph_name
 
 
@@ -93,15 +112,14 @@ def test_group(name):
     return username
 
 
-def run(name='20170424'):
-    members = get_members(name)
-    username = next(members)
-    all_time = get_time(members)
-    for time in all_time:
-        split_time(time)
-    img = make_graph(data)
-    username = test_group('B')      # todo del
-    itchat.send('@img@%s' % img, username)
+def run():
+    for name in groups:
+        members = get_members(name)
+        username = next(members)
+        all_time = get_time(members)
+        data = get_data(all_time)
+        img = make_graph(name, data)
+        # itchat.send('@img@%s' % img, username)
 
 if __name__ == '__main__':
     run()
