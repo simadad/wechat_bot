@@ -106,12 +106,6 @@ def make_graph(name, data):
     return graph_name
 
 
-def test_group(name):
-    rooms = itchat.search_chatrooms(name=name)
-    username = rooms[0]['UserName']
-    return username
-
-
 def run():
     for name in groups:
         members = get_members(name)

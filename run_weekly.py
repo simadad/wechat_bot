@@ -6,6 +6,13 @@ from personal_plan import log_this
 from graph import graph_dir, graph_send_dir, log_path
 
 itchat.auto_login(hotReload=True)
+test_name = 'B'
+
+
+def test_group():
+    rooms = itchat.search_chatrooms(name=test_name)
+    username = rooms[0]['UserName']
+    return username
 
 
 @log_this
@@ -22,7 +29,8 @@ def send_graph():
             for file in os.listdir(name_dir):
                 img_path = name_dir + '/' + file
                 if os.path.isfile(img_path):
-                    # itchat.send('@img@%s' % img_path, username)       # TODO del #
+                    username = test_group()             # TODO del
+                    itchat.send('@img@%s' % img_path, username)
                     f.write('{img:<60}SEND!\n'.format(img=file))
                     send_dir = name_dir + '/' + graph_send_dir + '/' + file
                     try:
