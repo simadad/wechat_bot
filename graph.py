@@ -102,7 +102,7 @@ def make_graph(name, data):
         os.mkdir(graph_dir+'/'+name)
         plt.savefig(graph_name)
     with open(log_path, 'a', encoding='utf8') as f:
-        f.write('{time:<30}{graph:<50}SAVED!\n'.format(time=thistime, graph=graph_name))
+        f.write('{time:<30}\n{graph:<30}SAVED!\n'.format(time=thistime, graph=graph_name))
     return graph_name
 
 

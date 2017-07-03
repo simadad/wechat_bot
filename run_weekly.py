@@ -31,14 +31,14 @@ def send_graph():
                 if os.path.isfile(img_path):
                     username = test_group()             # TODO del
                     itchat.send('@img@%s' % img_path, username)
-                    f.write('{img:<60}SEND!\n'.format(img=file))
+                    f.write('{img:<20}SEND!\n'.format(img=file))
                     send_dir = name_dir + '/' + graph_send_dir + '/' + file
                     try:
                         shutil.move(img_path, send_dir)
                     except FileNotFoundError:
                         os.mkdir(name_dir + '/' + graph_send_dir)
                         shutil.move(img_path, send_dir)
-                    f.write('{img:<60}MOVED!\n'.format(img=file))
+                    f.write('{img:<20}MOVED!\n'.format(img=file))
         f.write('\n')
 
 
