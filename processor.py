@@ -54,8 +54,9 @@ key_verify = "verifywechatkey$123456"
 # """.format(groupMark=groupMark)
 # TODO 加入微信配置页面
 msg_greet = {
-    'friend': '您好，{alias}欢迎加入crossin的编程教室。',
+    'friend': '您好，{alias}\n欢迎加入crossin的编程教室。',
     'group': '欢迎新朋友{nickname}的加入。',
+    'friend_group': '您好，{alias}\n回复 0000 查看入群代码。'
     # 'ques': '您好，{nickname}，请输入您要申请的群代码\n%s' % groups
 }
 
@@ -179,9 +180,21 @@ def get_rules():
     cur.execute('''
         SELECT keyword, nickname FROM webotconf_ruleaddfriend rule
         JOIN webotconf_chatroom room ON room.id = rule.chatroom_id
+        WHERE room.order < 100
         ORDER BY room.order
     ''')
     return cur.fetchall()
+
+
+def get_strict_rules():
+    cur = db.cursor()
+    cur.execute('''
+        SELECT keyword, nickname FROM webotconf_ruleaddfriend rule
+        JOIN webotconf_chatroom room ON room.id = rule.chatroom_id
+        WHERE room.order > 100
+        ORDER BY room.order
+    ''')
+    return []
 
 
 def group_choice(msg):
@@ -196,10 +209,22 @@ def group_choice(msg):
     #     return groupKeyDefault
     rules = get_rules()
     for rule in rules:
+        print('rule', rule)
         if rule[0] in msg:
             return [rule[1]]
     else:
         return False
+
+
+def group_choice_strict(info):
+    msg = info['Content']
+    username = info['FromUserName']
+    rules = get_strict_rules()
+    for rule in rules:
+        if rule[0] == msg.strip():
+            return username, rule[1]
+    else:
+        return username, False
 
 
 def info_add(info):
@@ -215,6 +240,7 @@ def info_add(info):
     else:
         alias = nickname
         group_name = group_choice(msg.strip())
+        print('group_chose', group_name)
         mark = '#etc#'
     return username, alias, nickname, group_name, mark
 
