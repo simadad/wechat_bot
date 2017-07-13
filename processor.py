@@ -2,11 +2,62 @@
 import getQA
 import datetime
 import re
+# import jieba
+import requests
+import json
+import pymysql
+db = pymysql.connect('localhost', 'marklab', 'crossinlab2017', 'crossin_lab', charset="utf8")
+
 QuestionHint = r'#Q#'                   # 提问
 AnswerHint = r'#A#'                     # 回答
 # Continue = r'#C#'                       # 继续描述上个问题
 question_time = 3600                     # 提问持续时间，单位秒
 QABars = {}
+url_verify = 'http://dev.crossin.me/vip/verify/wechat/'
+key_verify = "verifywechatkey$123456"
+
+# labMark = {
+#     'lab': r'#lab#',
+#     'spider': r'#spi#',
+#     'base': r'#bas#',
+#     'etc': r'#etc#'
+# }
+# groupKey = {
+#     '爬虫交流群': {'爬虫'},
+#     '进阶交流群': {'进阶', '提高', '高级'},
+# }
+# groupKeyList = [
+#     ('新手', ['新手交流群']),
+#     ('爬虫', ['爬虫交流群']),
+#     ('进阶', ['进阶交流群'])
+# ]
+# groupKeyDefault = '新手交流群'
+# labAddChar = r'#lab#'
+# labCrmChar = r'#lab#'
+# groupMark = r'$G$'
+# group = {
+#     labChar: '答疑群-2017-2',
+# labAddChar: 'B',
+#
+# }
+# groups2 = {
+#     groupMark + '1': '2017成长群',
+#     groupMark + '2': '2017进阶群',
+#     groupMark + '3': '2017爬虫群'
+# }
+# groups = """
+# 代码    群名\n
+# {groupMark}1    2017成长群\n
+# {groupMark}2    B\n
+# {groupMark}3    2017进阶群\n
+# 请输入完整代码，例如 {groupMark}3
+# """.format(groupMark=groupMark)
+# TODO 加入微信配置页面
+msg_greet = {
+    'friend': '您好，{alias}欢迎加入crossin的编程教室。',
+    'group': '欢迎新朋友{nickname}的加入。',
+    # 'ques': '您好，{nickname}，请输入您要申请的群代码\n%s' % groups
+}
 
 '''
 协程内处理思路：
@@ -99,6 +150,73 @@ def pure_msg(info):
     else:
         msg = pre_msg
     return name, msg, isq, isa
+
+
+def group_choice_vip(code, nickname):
+    """
+    付费用户调取后台接口，获取网站用户名，应加群名
+    """
+    json_info = {
+        "key": key_verify,
+        "code": code,
+        "wechat": nickname
+    }
+    r = requests.post(url_verify, json=json_info)
+    back_info = json.loads(r.text)
+    if 'username' in back_info:
+        return back_info['username'], back_info['group']
+    else:
+        return False, False
+
+
+def get_rules():
+    """
+    数据库获取关键字对应群规则
+    :return: (关键字, 群名)
+    """
+    # TODO 增加顺序
+    cur = db.cursor()
+    cur.execute('''
+        SELECT keyword, nickname FROM webotconf_ruleaddfriend rule
+        JOIN webotconf_chatroom room ON room.id = rule.chatroom_id
+        ORDER BY room.order
+    ''')
+    return cur.fetchall()
+
+
+def group_choice(msg):
+    """
+    非付费用户分流
+    """
+    # msg_set = set(jieba.cut(msg, cut_all=True))
+    # for key in groupKey:
+    #     if groupKey[key] & msg_set:
+    #         return key
+    # else:
+    #     return groupKeyDefault
+    rules = get_rules()
+    for rule in rules:
+        if rule[0] in msg:
+            return [rule[1]]
+    else:
+        return False
+
+
+def info_add(info):
+    """
+    好友添加认证
+    """
+    username = info['RecommendInfo']['UserName']
+    msg = info['RecommendInfo']['Content']
+    nickname = info['RecommendInfo']['NickName']
+    if re.match(r'\d{6}', msg.strip()):
+        alias, group_name = group_choice_vip(msg.strip(), nickname)
+        mark = '#lab#'
+    else:
+        alias = nickname
+        group_name = group_choice(msg.strip())
+        mark = '#etc#'
+    return username, alias, nickname, group_name, mark
 
 
 def info_router(info):
