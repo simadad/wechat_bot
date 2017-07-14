@@ -179,6 +179,8 @@ def group_choice_vip(code, nickname):
     }
     r = requests.post(url_verify, json=json_info)
     back_info = json.loads(r.text)
+    print('back_info', back_info)
+    print('type', type(back_info))
     if 'username' in back_info:
         return back_info['username'], back_info['group']
     else:
