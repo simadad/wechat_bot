@@ -30,7 +30,7 @@ def msg_group_choice(info):
             group = itchat.search_chatrooms(group_name)[0]
             print('mybot group', group)
             group.add_member([{'UserName': username}])  # 发送群邀请
-        itchat.send(msg_greet['bind'])
+        itchat.send(msg_greet['bind'], username)
     elif mode == 'msg':
         username, msg = reply
         itchat.send(msg, username)
