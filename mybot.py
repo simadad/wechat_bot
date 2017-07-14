@@ -17,10 +17,17 @@ import re
 
 @itchat.msg_register(itchat.content.TEXT, isFriendChat=True)
 def msg_group_choice(info):
-    username, group_name = group_choice_strict(info)
-    if group_name:
-        group = itchat.search_chatrooms(group_name)[0]
-        group.add_member([{'UserName': username}])
+    """
+    好友消息处理，严格入群规则
+    """
+    username, group_or_index, is_index = group_choice_strict(info)
+    print(username, group_or_index, is_index)
+    if username:
+        if is_index:
+            itchat.send(group_or_index, username)
+        else:
+            group = itchat.search_chatrooms(group_or_index)[0]
+            group.add_member([{'UserName': username}])
 
 '''
 @itchat.msg_register(itchat.content.TEXT, isGroupChat=True)
@@ -31,6 +38,9 @@ def msg_text_reply(info):
 
 @itchat.msg_register(itchat.content.FRIENDS)
 def msg_add_friend(info):
+    """
+    好友申请处理，宽松入群规则
+    """
     print('aaaaaaaaa')
     # QInfo.put(info)
     username, alias, nickname, groups, mark = info_add(info)                # 分析信息，分类
@@ -51,6 +61,9 @@ def msg_add_friend(info):
 
 @itchat.msg_register(itchat.content.NOTE, isGroupChat=True)
 def msg_group_note(info):
+    """
+    群欢迎信息
+    """
     alias = re.findall(r'你邀请"(.+)"加入了群聊', info['Content'])
     username = info['FromUserName']
     if alias:

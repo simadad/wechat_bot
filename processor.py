@@ -175,7 +175,6 @@ def get_rules():
     数据库获取关键字对应群规则
     :return: (关键字, 群名)
     """
-    # TODO 增加顺序
     cur = db.cursor()
     cur.execute('''
         SELECT keyword, nickname FROM webotconf_ruleaddfriend rule
@@ -187,6 +186,10 @@ def get_rules():
 
 
 def get_strict_rules():
+    """
+    严格入群规则，数据库
+    :return:[(代码，#群名),]
+    """
     cur = db.cursor()
     cur.execute('''
         SELECT keyword, nickname FROM webotconf_ruleaddfriend rule
@@ -194,7 +197,7 @@ def get_strict_rules():
         WHERE room.order > 100
         ORDER BY room.order
     ''')
-    return []
+    return cur.fetchall()
 
 
 def group_choice(msg):
@@ -217,14 +220,28 @@ def group_choice(msg):
 
 
 def group_choice_strict(info):
+    """
+    严格入群规则，消息处理
+    :return: 不处理/代码目录/对应规则
+    """
     msg = info['Content']
     username = info['FromUserName']
+    print(msg)
+    print(username)
     rules = get_strict_rules()
+    index = '{code_head:<6}群名'.format(code_head='代码')
+    is_index = False
     for rule in rules:
-        if rule[0] == msg.strip():
-            return username, rule[1]
+        print(rule)
+        if msg.strip() == rule[0]:
+            return username, rule[1].lstrip('#'), False
+        elif msg.strip() == '0000':
+            index += '\n{code:<6}{group}\n'.format(code=rule[0], group=rule[1])
+            is_index = True
+    if is_index:
+        return username, index, True
     else:
-        return username, False
+        return False, False, False
 
 
 def info_add(info):
