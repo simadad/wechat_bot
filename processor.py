@@ -14,7 +14,7 @@ AnswerHint = r'#A#'                     # 回答
 # Continue = r'#C#'                       # 继续描述上个问题
 question_time = 3600                     # 提问持续时间，单位秒
 QABars = {}
-url_verify = 'http://dev.crossin.me/vip/verify/wechat/'
+url_verify = 'http://crossincode.com/vip/verify/wechat/'
 key_verify = "verifywechatkey$123456"
 
 # labMark = {
