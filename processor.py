@@ -6,7 +6,8 @@ import re
 import requests
 import json
 import pymysql
-db = pymysql.connect('localhost', 'marklab', 'crossinlab2017', 'crossin_lab', charset="utf8")
+
+# db = pymysql.connect('localhost', 'marklab', 'crossinlab2017', 'crossin_lab', charset="utf8")
 
 QuestionHint = r'#Q#'                   # 提问
 AnswerHint = r'#A#'                     # 回答
@@ -54,10 +55,23 @@ key_verify = "verifywechatkey$123456"
 # """.format(groupMark=groupMark)
 # TODO 加入微信配置页面
 msg_greet = {
-    'friend': '您好，{alias}\n欢迎加入crossin的编程教室。',
-    'group': '欢迎新朋友{nickname}的加入。',
-    'friend_group': '您好，{alias}\n回复 0000 查看入群代码。'
+    'friend': '''{alias}，你好！
+    欢迎加入crossin的编程教室。
+    学习资源目录 http://crossincode.com/home/
+    加入读者交流群请回复：1000
+    码上行动账号绑定请回复：2000
+    如在操作过程中有任何问题，可在公众号后台给我们留言反馈。
+    复杂的代码问题请在 bbs.crossincode.com 上发帖提问，附上完整的代码、输出、运行环境说明等。''',
+    'group': '欢迎新同学：{nickname}！',
+    # 'friend_group': '您好，{alias}\n回复 0000 查看入群代码。',
+    'bind': '已成功绑定账号：{alias} ！',
+    'unbind': '绑定失败，验证码三分钟内有效，请重试。',
     # 'ques': '您好，{nickname}，请输入您要申请的群代码\n%s' % groups
+}
+msg_router = {
+    '1000': '发送代码加入对应群组：\n{index}',
+    '2000': '''参与马上行动的同学，请点击课程首页上“答疑群”-“关联微信及入群说明”，
+        查看绑定方法和状态。如尚未绑定，请直接在此回复个人验证码。''',
 }
 
 '''
@@ -156,6 +170,7 @@ def pure_msg(info):
 def group_choice_vip(code, nickname):
     """
     付费用户调取后台接口，获取网站用户名，应加群名
+    :return: (username, groups)/ (False, False)
     """
     json_info = {
         "key": key_verify,
@@ -175,6 +190,7 @@ def get_rules():
     数据库获取关键字对应群规则
     :return: (关键字, 群名)
     """
+    db = pymysql.connect('localhost', 'marklab', 'crossinlab2017', 'crossin_lab', charset="utf8")
     cur = db.cursor()
     cur.execute('''
         SELECT keyword, nickname FROM webotconf_ruleaddfriend rule
@@ -190,6 +206,7 @@ def get_strict_rules():
     严格入群规则，数据库
     :return:[(代码，#群名),]
     """
+    db = pymysql.connect('localhost', 'marklab', 'crossinlab2017', 'crossin_lab', charset="utf8")
     cur = db.cursor()
     cur.execute('''
         SELECT keyword, nickname FROM webotconf_ruleaddfriend rule
@@ -219,29 +236,41 @@ def group_choice(msg):
         return False
 
 
+def _get_index():
+    rules = get_strict_rules()
+    index = ''
+    for rule in rules:
+        index += '\n{code:<6}{group}\n'.format(code=rule[0], group=rule[1])
+    return index
+
+
 def group_choice_strict(info):
     """
     严格入群规则，消息处理
     :return: 不处理/代码目录/对应规则
     """
-    msg = info['Content']
+    msg = info['Content'].strip()
     username = info['FromUserName']
-    print(msg)
-    print(username)
+    nickname = info['User']['NickName']
+    print('msg: ', msg)
+    print('username:', username)
+    print('nickname', nickname)
+    if re.match(r'\d{6}', msg):
+        alias, groups = group_choice_vip(msg, nickname)
+        mark = '#lab#'
+        if alias:
+            return 'lab', (username, alias, groups, mark)
+        else:
+            return 'msg', (username, msg_greet['unbind'])
+    elif msg in msg_router:
+        return 'msg', (username, msg_router[msg].format(index=_get_index()))
     rules = get_strict_rules()
-    index = '{code_head:<6}群名'.format(code_head='代码')
-    is_index = False
     for rule in rules:
         print(rule)
-        if msg.strip() == rule[0]:
-            return username, rule[1].lstrip('#'), False
-        elif msg.strip() == '0000':
-            index += '\n{code:<6}{group}\n'.format(code=rule[0], group=rule[1])
-            is_index = True
-    if is_index:
-        return username, index, True
+        if msg == rule[0]:
+            return 'strict', (username, rule[1].lstrip('#'))
     else:
-        return False, False, False
+        return False, False
 
 
 def info_add(info):
@@ -252,14 +281,16 @@ def info_add(info):
     msg = info['RecommendInfo']['Content']
     nickname = info['RecommendInfo']['NickName']
     if re.match(r'\d{6}', msg.strip()):
-        alias, group_name = group_choice_vip(msg.strip(), nickname)
+        alias, groups = group_choice_vip(msg.strip(), nickname)
         mark = '#lab#'
+        if not alias:
+            alias = nickname
     else:
         alias = nickname
-        group_name = group_choice(msg.strip())
-        print('group_chose', group_name)
+        groups = group_choice(msg.strip())
+        print('group_chose', groups)
         mark = '#etc#'
-    return username, alias, nickname, group_name, mark
+    return username, alias, groups, mark
 
 
 def info_router(info):
