@@ -73,6 +73,10 @@ msg_router = {
     '2000': '''参与码上行动的同学，请点击课程首页上“答疑群”-“关联微信及入群说明”，
         查看绑定方法和状态。如尚未绑定，请直接在此回复个人验证码。''',
 }
+friend_mark = {
+    'lab': '#lab#',
+    'etc': '#etc#',
+}
 
 '''
 协程内处理思路：
@@ -259,7 +263,7 @@ def group_choice_strict(info):
     print('nickname', nickname)
     if re.match(r'\d{6}', msg):
         alias, groups = group_choice_vip(msg, nickname)
-        mark = '#lab#'
+        mark = friend_mark['lab']
         if alias:
             return 'lab', (username, alias, groups, mark)
         else:
@@ -284,14 +288,14 @@ def info_add(info):
     nickname = info['RecommendInfo']['NickName']
     if re.match(r'\d{6}', msg.strip()):
         alias, groups = group_choice_vip(msg.strip(), nickname)
-        mark = '#lab#'
+        mark = friend_mark['lab']
         if not alias:
             alias = nickname
     else:
         alias = nickname
         groups = group_choice(msg.strip())
         print('group_chose', groups)
-        mark = '#etc#'
+        mark = friend_mark['etc']
     return username, alias, groups, mark
 
 

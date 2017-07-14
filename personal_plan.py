@@ -6,8 +6,10 @@ from functools import wraps
 from statistic import db as info_db
 from getQA import db as wechat_db
 from getQA import db_table_column, data_save
+from processor import friend_mark
+from time import sleep
 
-db_table_column['user_wechat'] = 'username, wechat, new_wechat'
+# db_table_column['user_wechat'] = 'username, wechat, new_wechat'
 db_table_column['schedule'] = 'course_id, schedule, title, accumulate_hours'
 remind_gap_week = (1, 2, 4, 8)       # 督促间隔
 remind_gap = [x*7 for x in remind_gap_week]
@@ -42,7 +44,7 @@ confirm = {
             'skip': 0,  # 总未推送人次
             'send': 0,  # 推送人次
         }
-now = datetime.datetime.now().date() + datetime.timedelta(days=0)
+now = datetime.datetime.now().date() + datetime.timedelta(days=-90)
 itchat.auto_login(hotReload=True)
 
 
@@ -74,7 +76,7 @@ def search_students_info(course_id):
     """
     cur = info_db.cursor()
     cur.execute('''
-    SELECT user.username, bill.wechat, vip.remind, vip.remind_plan, vip.remind_days,
+    SELECT user.username, vip.remind, vip.remind_plan, vip.remind_days,
     user.last_login, MAX(chapter.seq), plan.start_date, plan.end_date, SUM(lesson.hour)
     FROM school_learnedlesson learned
     JOIN school_lesson lesson
@@ -87,8 +89,6 @@ def search_students_info(course_id):
     ON user.id = plan.user_id
     JOIN vip_premium vip
     ON user.id = vip.user_id
-    JOIN vip_bill bill
-    ON user.id = bill.vip_user_id
     WHERE plan.course_id = {course_id}
     AND learned.lesson_id {judge}
     GROUP BY user.username
@@ -131,21 +131,21 @@ def _urge_weeks(course_id, present_chapter, last_login):
 
 
 @log_this
-def search_wechat_id(username, wechat):
+def search_wechat_id(wechat):
     """
     接受username，返回微信最新UserName
     :return:
     """
-    user = itchat.search_friends(wechat) or itchat.search_friends(username)
+    user = itchat.search_friends(remarkName=wechat)
     if len(user) == 1:
         wechat_id = user[0]['UserName']
     else:
-        wechat_id = _confirm(username, wechat)
+        wechat_id = _confirm(wechat)
     return wechat_id
 
 
 @log_this
-def _confirm(username, wechat):
+def _confirm(wechat):
     """
     本地数据库确认可用微信号
     :return:
@@ -154,7 +154,7 @@ def _confirm(username, wechat):
     if wechat is None:
         wechat = 'NoWeChat'
     log = '{time:<40}:\n{username:<20}{wechat:<20}\n{cut:-<40}\n\n'.format(
-        time=log_time, username=username, wechat=wechat, cut=''
+        time=log_time, username=wechat.lstrip(friend_mark['lab']), wechat=wechat, cut=''
     )
     with open(log_path['log_missing'], 'a', encoding='utf8') as f:
         f.write(log)
@@ -162,15 +162,15 @@ def _confirm(username, wechat):
     # TODO 正确微信号确认
     # username, wechat = stu_info
     # cur = wechat_db.cursor()
-    # cur.execute('''
+    # cur.execute("""
     #         SELECT username, new_wechat FROM user_wechat WHERE username='{username}'
-    #         ;'''.format(username=username))
+    #         ;""".format(username=username))
     # _, new_wechat = cur.fetchone()
     # if new_wechat is None:
     #     values = "'{}', '{}', null".format(*stu_info)
     #     data_save('user_wechat', values)
     #     new_wechat = False
-    # return new_wechat
+    #     return new_wechat
     return False
 
 
@@ -273,12 +273,12 @@ def send_msg(wechat_id, msg, stu_info):
     发送消息
     :return:
     """
-    msg = wechat_id + ':\n' + msg
-    room = itchat.search_chatrooms('B')
-    room_id = room[0]['UserName']
-    # itchat.send(msg, wechat_id)
+    # msg = wechat_id + ':\n' + msg
+    # room = itchat.search_chatrooms('B')
+    # room_id = room[0]['UserName']
+    itchat.send(msg, wechat_id)
     # print(msg, username)
-    itchat.send(msg, room_id)            # TODO del #
+    # itchat.send(msg, room_id)            # TODO del #
     confirm['send'] += 1
     username, wechat = stu_info
     if wechat is None:
@@ -347,19 +347,23 @@ def _confirm_log(course_id):
 
 
 @log_this
-def remind_it(username, wechat, course_id, info: tuple=False, weeks: int=False):
+def remind_it(username, course_id, info: tuple=False, weeks: int=False):
     """
     推送消息
     """
     # 获取用户 itchat  UserName
-    wechat_id = search_wechat_id(username, wechat)
+    wechat_id = search_wechat_id(friend_mark['lab']+username)
+    print('wechat_id: ', wechat_id, friend_mark['lab']+username)
     if info:
         whole_hours, start_date, end_date, learned_hours = info
         msg = comb_info(username, course_id, (whole_hours, start_date, end_date, learned_hours))
+        print('msg: ', msg)
     else:
         msg = comb_info(username, course_id, weeks=weeks)
     if wechat_id:
-        send_msg(wechat_id, msg, (username, wechat))
+        send_msg(wechat_id, msg, (username, friend_mark['lab']+username))
+        sleep(1)
+        print('msg: ', msg)
     else:
         confirm['missing'] += 1
 
@@ -376,18 +380,20 @@ def run(is_update_schedule=False):
         # 获取课程总课时
         whole_hours = _get_whole_hours(course_id)
         # 获取本课程所有学生信息生成器
+        print('whole_hours: ', whole_hours)
         students_info = search_students_info(course_id)
         for stu_info in students_info:
             confirm['total'] += 1
-            username, wechat, remind, remind_plan, remind_days, last_login, \
+            username, remind, remind_plan, remind_days, last_login, \
                 present_chapter, start_date, end_date, learned_hours = stu_info
             # 如果设定督促，且今天为督促日，发送督促信息
+            # print('stu_info: ', stu_info)
             if remind and _urge_weeks(course_id, present_chapter, last_login):
                 weeks = _urge_weeks(course_id, present_chapter, last_login)
-                remind_it(username, wechat, course_id, weeks=int(weeks))
+                remind_it(username, course_id, weeks=int(weeks))
             # 如果设定定时推送，且今天为推送日，发送推送信息
             elif remind_plan and _to_remind(start_date, end_date, remind_days):
-                remind_it(username, wechat, course_id, (whole_hours, start_date, end_date, learned_hours))
+                remind_it(username, course_id, (whole_hours, start_date, end_date, learned_hours))
             elif not remind and not remind_plan:
                 confirm['finished'] += 1
             else:
