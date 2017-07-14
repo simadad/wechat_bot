@@ -67,7 +67,8 @@ def msg_add_friend(info):
             group = itchat.search_chatrooms(group_name)[0]
             print('mybot group', group)
             group.add_member([{'UserName': username}])                      # 发送群邀请
-            # group.send(msg_greet['group'].format(nickname=nickname))        # 发送群友欢迎消息
+        itchat.send(msg_greet['bind'].format(alias=alias), username)
+        # group.send(msg_greet['group'].format(nickname=nickname))        # 发送群友欢迎消息
     # else:
     #     print('no groups')
     #     itchat.send(msg_greet['friend_group'].format(alias=alias), username)
