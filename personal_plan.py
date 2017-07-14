@@ -9,8 +9,8 @@ from getQA import db_table_column, data_save
 
 db_table_column['user_wechat'] = 'username, wechat, new_wechat'
 db_table_column['schedule'] = 'course_id, schedule, title, accumulate_hours'
-remind_gap = (1, 2, 4, 8)       # 督促间隔
-remind_gap = [x*7 for x in remind_gap]
+remind_gap_week = (1, 2, 4, 8)       # 督促间隔
+remind_gap = [x*7 for x in remind_gap_week]
 courses = ('1', '2')
 max_chapter = {
     '1': 12,
@@ -117,8 +117,11 @@ def _urge_weeks(course_id, present_chapter, last_login):
     """
     确定当天是否督促
     """
+    # 如果当前章节小于最大章节
     if int(present_chapter) < max_chapter[course_id]:
+        # 今日至最后登录时间之间隔天数
         gap = (now - last_login.date()).days
+        # 如果间隔天数恰好为响应天数（1、2、4、8周）返回间隔周数
         if gap in remind_gap:
             return gap / 7
         confirm['skip_r'] += 1
@@ -180,8 +183,10 @@ def comb_info(username, course_id, info: tuple=False, weeks: int=False):
         whole_hours, start_date, end_date, learned_hours = info
         aim_lesson = _get_aim_lesson(course_id, whole_hours, learned_hours, end_date)
         model = _model_choice(whole_hours, start_date, end_date, learned_hours)
+        # 调取模版返回消息
         msg = _get_msg(username, (aim_lesson, model))
     else:
+        # 调取模版返回消息
         msg = _get_msg(username, weeks=weeks)
     return msg
 
@@ -346,6 +351,7 @@ def remind_it(username, wechat, course_id, info: tuple=False, weeks: int=False):
     """
     推送消息
     """
+    # 获取用户 itchat  UserName
     wechat_id = search_wechat_id(username, wechat)
     if info:
         whole_hours, start_date, end_date, learned_hours = info
@@ -363,17 +369,23 @@ def run(is_update_schedule=False):
     """
     search_students_info -> search_wechat -> comb_info -> send_msg
     """
+    # 更新本地数据库章节用时信息
     update_schedule(is_update_schedule)
+    # 循环每一课程（基础/爬虫）
     for course_id in courses:
+        # 获取课程总课时
         whole_hours = _get_whole_hours(course_id)
+        # 获取本课程所有学生信息生成器
         students_info = search_students_info(course_id)
         for stu_info in students_info:
             confirm['total'] += 1
             username, wechat, remind, remind_plan, remind_days, last_login, \
                 present_chapter, start_date, end_date, learned_hours = stu_info
+            # 如果设定督促，且今天为督促日，发送督促信息
             if remind and _urge_weeks(course_id, present_chapter, last_login):
                 weeks = _urge_weeks(course_id, present_chapter, last_login)
                 remind_it(username, wechat, course_id, weeks=int(weeks))
+            # 如果设定定时推送，且今天为推送日，发送推送信息
             elif remind_plan and _to_remind(start_date, end_date, remind_days):
                 remind_it(username, wechat, course_id, (whole_hours, start_date, end_date, learned_hours))
             elif not remind and not remind_plan:
