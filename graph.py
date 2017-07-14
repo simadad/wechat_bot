@@ -4,9 +4,10 @@ import os
 from statistic import db
 from matplotlib import pyplot as plt
 from personal_plan import log_this
+from processor import friend_mark
 
 # thistime = datetime.datetime.now()
-thistime = datetime.datetime.strptime('2017-05-20', '%Y-%m-%d')
+thistime = datetime.datetime.strptime('2017-05-10', '%Y-%m-%d')
 gap_day = 7
 gap_hour = 6
 gap_day_label = ['一', '二', '三', '四', '五', '六', '日']
@@ -29,19 +30,22 @@ def get_members(name: str):
     """
     根据群名称，返回群ID、群成员生成器
     """
-    rooms = itchat.search_chatrooms(name=name)
-    username = rooms[0]['UserName']
+    room = itchat.search_chatrooms(name=name)[0]
+    # username = room['UserName']
     # nickname = rooms[0]['NickName']
     # print(username)
     # yield name, nickname, username
-    yield username
-    room_info = itchat.update_chatroom(userName=username)
-    members_info = room_info['MemberList']
+    # yield username
+    # room_info = itchat.update_chatroom(userName=username)
+    room.update()
+    members_info = room['MemberList']
     for m in members_info:
-        if m['DisplayName']:
-            yield m['DisplayName']
-        else:
-            yield m['NickName']
+        # if m['DisplayName']:
+        #     yield m['DisplayName']
+        # else:
+        #     yield m['NickName']
+        print('member: ', m)
+        yield m['NickName'].lstrip(friend_mark['lab'])
 
 
 @log_this
@@ -57,19 +61,29 @@ def get_time(members, gap=gap_day):
         FROM school_learnedlesson learned
         LEFT JOIN auth_user user
         ON user.id = learned.user_id
-        WHERE datediff('{now}', learned.learn_time) < {gap}
+        WHERE datediff('{now}', learned.learn_time) > 0
+        AND datediff('{now}', learned.learn_time) <= {gap}
         AND user.username = '{username}'
         '''.format(username=username, gap=gap, now=now))
+        print('username: ', username)
         for time in cur:
+            print('time_msq: ', time, 'now: ', now)
             yield time[0]
 
 
 @log_this
 def get_data(all_time):
+    """
+    组合二维时间序列
+    :return:
+    """
     data = [[0 for _ in range(gap_day)] for __ in range(int(24 / gap_hour))]
     for time in all_time:
+        print('time: ', time)
         days = (thistime - time).days
+        print('days: ', days)
         hours = time.hour // gap_hour
+        print('hours: ', hours)
         data[hours][days] += 1
     return data
 
@@ -107,13 +121,15 @@ def make_graph(name, data):
 
 
 def run():
+    print('0000000000')
     for name in groups:
+        # 获取成员
         members = get_members(name)
-        username = next(members)
+        # next(members)
         all_time = get_time(members)
         data = get_data(all_time)
-        img = make_graph(name, data)
-        # itchat.send('@img@%s' % img, username)
+        print('data: ', data)
+        make_graph(name, data)
 
 if __name__ == '__main__':
     run()
