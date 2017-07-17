@@ -36,12 +36,17 @@ def msg_group_choice(info):
     elif mode == 'msg':
         print(2222222222222)
         username, msg = reply
+        print('msg-username-msg: ', username, msg)
         itchat.send(msg, username)
     elif mode == 'strict':
         print(33333333333)
         username, group_name = reply
+        print('strict-username-group: ', username, group_name)
         group = itchat.search_chatrooms(group_name)[0]
         group.add_member([{'UserName': username}])  # 发送群邀请
+    else:
+        print(444444444)
+        print('mode-reply: ', mode, reply)
 
 '''
 @itchat.msg_register(itchat.content.TEXT, isGroupChat=True)
