@@ -56,12 +56,14 @@ key_verify = "verifywechatkey$123456"
 # TODO 加入微信配置页面
 msg_greet = {
     'friend': '''{alias}，你好！
-    欢迎加入crossin的编程教室。
-    学习资源目录 http://crossincode.com/home/
-    加入读者交流群请回复：1000
-    码上行动账号绑定请回复：2000
-    如在操作过程中有任何问题，可在公众号后台给我们留言反馈。
-    复杂的代码问题请在 bbs.crossincode.com 上发帖提问，附上完整的代码、输出、运行环境说明等。''',
+欢迎加入Crossin的编程教室。
+
+加入读者交流公共群请回复 1000
+“码上行动”用户加群请回复 2000
+
+学习资源目录 http://crossincode.com/home/
+
+此账号为机器人，问答功能正在开发中。如操作过程中有任何问题，可在公众号后台留言，或联系微信 crossin11。复杂的代码问题请在 bbs.crossincode.com 上发帖提问，附上完整的代码、输出、运行环境说明等。''',
     'group': '欢迎新同学：{nickname}！',
     # 'friend_group': '您好，{alias}\n回复 0000 查看入群代码。',
     'bind': '已成功绑定账号：{alias} ！',
