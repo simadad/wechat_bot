@@ -265,6 +265,7 @@ def group_choice_strict(info):
     print('nickname', nickname)
     if re.match(r'\d{6}', msg):
         alias, groups = group_choice_vip(msg, nickname)
+        print('VIP-alias-groups: ', alias, groups)
         if alias:
             mark = friend_mark['lab']
             return 'lab', (username, alias, groups, mark)
@@ -292,9 +293,9 @@ def info_add(info):
     alias = nickname
     if re.match(r'\d{6}', msg.strip()):
         alias, groups = group_choice_vip(msg.strip(), nickname)
+        print('alias-groups: ', alias, groups)
         if groups:
             mark = friend_mark['lab']
-            print('alias and groups: ', alias, groups)
     else:
         groups = group_choice(msg.strip())
         print('group_chose', groups)
