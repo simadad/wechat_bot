@@ -61,8 +61,8 @@ def get_time(members, gap=gap_day):
         FROM school_learnedlesson learned
         LEFT JOIN auth_user user
         ON user.id = learned.user_id
-        WHERE datediff('{now}', learned.learn_time) > 0
-        AND datediff('{now}', learned.learn_time) <= {gap}
+        WHERE datediff('{now}', learned.learn_time) >= 0
+        AND datediff('{now}', learned.learn_time) < {gap}
         AND user.username = '{username}'
         '''.format(username=username, gap=gap, now=now))
         print('username: ', username)
