@@ -97,15 +97,14 @@ def msg_group_note(info):
     alias = re.findall(r'你邀请"([\s\S]+)"加入了群聊', info['Content'])
     print('alias: ', alias)
     if alias:
-        # users = itchat.search_friends(remarkName=alias[0])
+        users = itchat.search_friends(remarkName=alias[0])
         username = info['FromUserName']
-        user = itchat.search_friends(userName=username)
-        nickname = user['NickName']
-        print('nickname-username: ', nickname, username)
-        # if len(users) == 1:
-        #     user = users[0]
-        #     nickname = user['NickName']
-        itchat.send(msg_greet['group'].format(nickname=nickname), username)
+        print('users-len: ', len(users))
+        if len(users) == 1:
+            user = users[0]
+            nickname = user['NickName']
+            print('nickname-usernameG: ', nickname, username)
+            itchat.send(msg_greet['group'].format(nickname=nickname), username)
     print('NOTE-OFF\n=======================================\n')
 
 
