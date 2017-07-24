@@ -30,21 +30,23 @@ def get_members(name: str):
     """
     根据群名称，返回群ID、群成员生成器
     """
+    print('group name: ', name)
     room = itchat.search_chatrooms(name=name)[0]
-    # username = room['UserName']
+    print('username: ', room['UserName'])
     # nickname = rooms[0]['NickName']
     # print(username)
     # yield name, nickname, username
     # yield username
     # room_info = itchat.update_chatroom(userName=username)
-    room.update()
-    members_info = room['MemberList']
+    members_info = room.update()['MemberList']
+    print('members_info-len: ', len(members_info))
     for m in members_info:
+        # print(m)
         # if m['DisplayName']:
         #     yield m['DisplayName']
         # else:
         #     yield m['NickName']
-        print('member: ', m)
+        print('member[nickname]: ', m['NickName'])
         yield m['NickName'].lstrip(friend_mark['lab'])
 
 
@@ -66,8 +68,9 @@ def get_time(members, gap=gap_day):
         AND user.username = '{username}'
         '''.format(username=username, gap=gap, now=now))
         print('username: ', username)
+        print('now: ', now)
         for time in cur:
-            print('time_msq: ', time, 'now: ', now)
+            print('time_msq: ', time)
             yield time[0]
 
 
@@ -80,7 +83,7 @@ def get_data(all_time):
     data = [[0 for _ in range(gap_day)] for __ in range(int(24 / gap_hour))]
     for time in all_time:
         print('time: ', time)
-        days = (thistime - time).days
+        days = (thistime.date() - time.date()).days
         print('days: ', days)
         hours = time.hour // gap_hour
         print('hours: ', hours)
@@ -121,7 +124,7 @@ def make_graph(name, data):
 
 
 def run():
-    print('0000000000')
+    print('RUN: graph.py')
     for name in groups:
         # 获取成员
         members = get_members(name)

@@ -6,7 +6,7 @@ from matplotlib import pyplot as plt
 import openpyxl
 import pymysql
 from pylab import mpl
-db = pymysql.connect('23.83.235.63', 'markdev', 'mark2017', 'codeclass', charset="utf8")
+db = pymysql.connect('47.93.61.70', 'markdev', 'mark2017', 'codeclass', charset="utf8")
 cur = db.cursor()
 
 mpl.rcParams['font.sans-serif'] = ['FangSong']      # 指定默认字体
