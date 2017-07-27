@@ -33,7 +33,8 @@ def msg_group_choice(info):
             print('mybot add group name：', group_name)
             group = itchat.search_chatrooms(group_name)[0]
             print('mybot group', group['NickName'])
-            group.add_member([{'UserName': username}])  # 发送群邀请
+            r = group.add_member([{'UserName': username}])  # 发送群邀请
+            print('group_add_confirm: ', r['BaseResponse']['ErrMsg'])
         itchat.send(msg_greet['bind'].format(alias=alias), username)
         print('msg_send: ', msg_greet['bind'].format(alias=alias))
     elif mode == 'msg':
@@ -46,7 +47,9 @@ def msg_group_choice(info):
         username, group_name = reply
         print('strict-username-group: ', username, group_name)
         group = itchat.search_chatrooms(group_name)[0]
-        group.add_member([{'UserName': username}])  # 发送群邀请
+        print('group_search_confirm: ', group['NickName'])
+        r = group.add_member([{'UserName': username}])  # 发送群邀请
+        print('group_add_confirm: ', r['BaseResponse']['ErrMsg'])
     else:
         print('MODE-else')
         print('mode-reply: ', mode, reply)

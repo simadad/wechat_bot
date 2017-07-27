@@ -1,5 +1,6 @@
 # AAAAA
 .idea
+graphs/*
 *.ipynb
 test*
 ttt*

@@ -275,7 +275,7 @@ def group_choice_strict(info):
         return 'msg', (username, msg_router[msg].format(index=_get_index()))
     rules = get_strict_rules()
     for rule in rules:
-        print(rule)
+        print('rule: ', rule)
         if msg == rule[0]:
             return 'strict', (username, rule[1].lstrip('#'))
     else:
