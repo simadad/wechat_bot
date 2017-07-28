@@ -119,6 +119,6 @@ def send_text(msg, username):
     itchat.send(msg, username)
 
 
-itchat.auto_login(hotReload=True, enableCmdQR=2)
 if __name__ == '__main__':
+    itchat.auto_login(hotReload=True, enableCmdQR=2)
     itchat.run()
